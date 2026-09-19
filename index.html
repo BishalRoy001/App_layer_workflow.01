@@ -8,7 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
         :root {
-            var(--bg-body): #f4f5f7;
+            --bg-body: #f4f5f7;
             --bg-surface: #ffffff;
             --text-primary: #111827;
             --text-secondary: #4b5563;
@@ -140,7 +140,7 @@
         }
         button.action-btn:hover { background: var(--accent-hover); }
 
-        /* Playback Controls CSS */
+        /* Playback Controls */
         .controls-container {
             display: none; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-shrink: 0;
         }
@@ -149,17 +149,24 @@
             font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
             transition: all 0.2s ease; font-weight: 500;
         }
-        .control-btn:hover { background: var(--border-light); }
-        .control-btn:active { transform: translateY(1px); }
+        .control-btn:hover:not(:disabled) { background: var(--border-light); }
+        .control-btn:active:not(:disabled) { transform: translateY(1px); }
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
 
         #log-container {
             flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column;
         }
         
+        /* Fully visible by default; only animate when class is explicitly added */
         .log-entry {
             padding: 1.25rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--border-light);
-            opacity: 0; transform: translateY(10px); animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            flex-shrink: 0;
+            opacity: 1; transform: translateY(0); flex-shrink: 0;
+        }
+        .log-entry.animating {
+            opacity: 0; transform: translateY(10px); animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .log-out { background: var(--log-out); border-left: 4px solid var(--log-border-out); }
         .log-in { background: var(--log-in); border-left: 4px solid var(--log-border-in); }
@@ -258,9 +265,9 @@
             
             <div class="controls-container" id="playback-controls">
                 <button class="control-btn" onclick="replaySequence()">⏪ Replay</button>
-                <button class="control-btn" onclick="stepBackward()">⏮ Back</button>
-                <button class="control-btn" onclick="togglePlayPause()" id="play-pause-btn">⏸ Pause</button>
-                <button class="control-btn" onclick="stepForward()">⏭ Forward</button>
+                <button class="control-btn" id="btn-back" onclick="stepBackward()">⏮ Back</button>
+                <button class="control-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
+                <button class="control-btn" id="btn-fwd" onclick="stepForward()">⏭ Forward</button>
             </div>
 
             <div id="log-container">
@@ -353,13 +360,24 @@
         }
 
         // --- Playback Controls Logic ---
+        function updateControlButtons() {
+            const backBtn = document.getElementById('btn-back');
+            const fwdBtn = document.getElementById('btn-fwd');
+            const playBtn = document.getElementById('play-pause-btn');
+
+            if (backBtn) backBtn.disabled = (stepIndex <= 0);
+            if (fwdBtn) fwdBtn.disabled = (stepIndex >= currentSequence.length);
+            if (playBtn) playBtn.innerHTML = isPlaying ? '⏸ Pause' : '▶️ Play';
+        }
+
         function startSequence(sequence) {
+            clearTimeout(playTimer);
             currentSequence = sequence;
             stepIndex = 0;
             isPlaying = true;
             document.getElementById('log-container').innerHTML = '';
             document.getElementById('playback-controls').style.display = 'flex';
-            document.getElementById('play-pause-btn').innerHTML = '⏸ Pause';
+            updateControlButtons();
             playNextStep();
         }
 
@@ -367,24 +385,23 @@
             if (!isPlaying) return;
             if (stepIndex >= currentSequence.length) {
                 isPlaying = false;
-                document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
+                updateControlButtons();
                 return;
             }
-            renderStep(currentSequence[stepIndex]);
+            renderStep(currentSequence[stepIndex], true);
             stepIndex++;
+            updateControlButtons();
             playTimer = setTimeout(playNextStep, 1200);
         }
 
-        function renderStep(step, animate = true) {
+        function renderStep(step, animate = false) {
             const logContainer = document.getElementById('log-container');
             const div = document.createElement('div');
-            div.className = `log-entry log-${step.type}`;
-            if (!animate) div.style.animation = 'none'; // Skip animation CSS for instant back/forward stepping
+            div.className = `log-entry log-${step.type} ${animate ? 'animating' : ''}`;
             
-            const directionArrow = step.type === 'out' ? '➔' : '➔';
             div.innerHTML = `
                 <div class="meta">
-                    <span>${step.sender} ${directionArrow} ${step.receiver}</span>
+                    <span>${step.sender} ➔ ${step.receiver}</span>
                     <span class="protocol-badge">${step.protocol}</span>
                 </div>
                 <pre>${step.msg}</pre>
@@ -394,41 +411,42 @@
         }
 
         function togglePlayPause() {
-            isPlaying = !isPlaying;
-            const btn = document.getElementById('play-pause-btn');
             if (isPlaying) {
-                btn.innerHTML = '⏸ Pause';
-                if (stepIndex >= currentSequence.length) startSequence(currentSequence);
-                else playNextStep();
-            } else {
-                btn.innerHTML = '▶️ Play';
+                isPlaying = false;
                 clearTimeout(playTimer);
+            } else {
+                if (stepIndex >= currentSequence.length) {
+                    startSequence(currentSequence);
+                    return;
+                }
+                isPlaying = true;
+                playNextStep();
             }
+            updateControlButtons();
         }
 
         function stepForward() {
-            isPlaying = false;
-            document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
             clearTimeout(playTimer);
+            isPlaying = false;
             if (stepIndex < currentSequence.length) {
-                renderStep(currentSequence[stepIndex]);
+                renderStep(currentSequence[stepIndex], true);
                 stepIndex++;
             }
+            updateControlButtons();
         }
 
         function stepBackward() {
-            isPlaying = false;
-            document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
             clearTimeout(playTimer);
+            isPlaying = false;
             if (stepIndex > 0) {
                 stepIndex--;
-                // Clear and redraw all steps up to the previous index instantly
                 const logContainer = document.getElementById('log-container');
                 logContainer.innerHTML = '';
                 for (let i = 0; i < stepIndex; i++) {
-                    renderStep(currentSequence[i], false);
+                    renderStep(currentSequence[i], false); // Renders instantly with 100% opacity
                 }
             }
+            updateControlButtons();
         }
 
         function replaySequence() {
