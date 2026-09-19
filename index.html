@@ -399,12 +399,15 @@
             const div = document.createElement('div');
             div.className = `log-entry log-${step.type} ${animate ? 'animating' : ''}`;
             
+            // Fix: Escape angle brackets so email addresses render correctly
+            const escapedMsg = step.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
             div.innerHTML = `
                 <div class="meta">
                     <span>${step.sender} ➔ ${step.receiver}</span>
                     <span class="protocol-badge">${step.protocol}</span>
                 </div>
-                <pre>${step.msg}</pre>
+                <pre>${escapedMsg}</pre>
             `;
             logContainer.appendChild(div);
             logContainer.scrollTop = logContainer.scrollHeight;
