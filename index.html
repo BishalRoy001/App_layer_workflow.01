@@ -8,8 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
         :root {
-            /* Light Theme Variables */
-            --bg-body: #f4f5f7;
+            var(--bg-body): #f4f5f7;
             --bg-surface: #ffffff;
             --text-primary: #111827;
             --text-secondary: #4b5563;
@@ -24,7 +23,6 @@
         }
 
         [data-theme="dark"] {
-            /* Dark Theme Variables */
             --bg-body: #0f172a;
             --bg-surface: #1e293b;
             --text-primary: #f8fafc;
@@ -53,7 +51,6 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Star Background Canvas */
         #star-canvas {
             position: fixed;
             top: 0;
@@ -71,7 +68,6 @@
             text-align: center;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
             position: relative;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
 
         .theme-toggle {
@@ -95,59 +91,34 @@
             transition: all 0.2s ease;
         }
 
-        .theme-toggle:hover {
-            background: var(--border-light);
-        }
+        .theme-toggle:hover { background: var(--border-light); }
 
         h1 { margin: 0; font-weight: 600; font-size: 1.5rem; letter-spacing: -0.02em; }
         .subtitle { margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary); font-weight: 400; }
         
         .main-workspace {
-            display: flex; 
-            gap: 2rem; 
-            padding: 2rem; 
-            flex: 1; 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            width: 100%; 
-            box-sizing: border-box;
-            height: calc(100vh - 100px); /* Fill remaining space on desktop */
+            display: flex; gap: 2rem; padding: 2rem; flex: 1; max-width: 1400px; 
+            margin: 0 auto; width: 100%; box-sizing: border-box; height: calc(100vh - 100px); 
         }
 
         .panel {
-            background: var(--bg-surface); 
-            border: 1px solid var(--border-light);
-            border-radius: 8px; 
-            padding: 2rem; 
-            display: flex; 
-            flex-direction: column;
+            background: var(--bg-surface); border: 1px solid var(--border-light);
+            border-radius: 8px; padding: 2rem; display: flex; flex-direction: column;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
 
-        .left-panel { 
-            flex: 1 1 350px; 
-            max-width: 450px; 
-            height: fit-content;
-        }
-
-        .right-panel { 
-            flex: 2 1 500px; 
-            background: rgba(var(--bg-surface), 0.85); 
-            backdrop-filter: blur(4px); 
-            overflow: hidden; /* Constrain inner scrolling on desktop */
-        }
+        .left-panel { flex: 1 1 350px; max-width: 450px; height: fit-content; }
+        .right-panel { flex: 2 1 500px; background: rgba(var(--bg-surface), 0.85); backdrop-filter: blur(4px); overflow: hidden; }
 
         h2 { 
             font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
             color: var(--text-secondary); border-bottom: 1px solid var(--border-light); 
-            padding-bottom: 0.75rem; margin-top: 0; margin-bottom: 1.5rem;
-            flex-shrink: 0;
+            padding-bottom: 0.75rem; margin-top: 0; margin-bottom: 1.5rem; flex-shrink: 0;
         }
         
         .activity-section { display: none; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}
         .activity-section.active { display: flex; }
-        
         label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
         .input-group { margin-bottom: 0.5rem; }
 
@@ -169,12 +140,20 @@
         }
         button.action-btn:hover { background: var(--accent-hover); }
 
+        /* Playback Controls CSS */
+        .controls-container {
+            display: none; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-shrink: 0;
+        }
+        .control-btn {
+            background: var(--bg-body); color: var(--text-primary); border: 1px solid var(--border-light);
+            font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
+            transition: all 0.2s ease; font-weight: 500;
+        }
+        .control-btn:hover { background: var(--border-light); }
+        .control-btn:active { transform: translateY(1px); }
+
         #log-container {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 10px; /* Offset for scrollbar */
-            display: flex;
-            flex-direction: column;
+            flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column;
         }
         
         .log-entry {
@@ -199,33 +178,16 @@
         }
         
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 4px; }
 
-        /* Responsive Layout Updates */
         @media (max-width: 900px) {
-            body {
-                height: auto;
-            }
-            .main-workspace {
-                flex-direction: column;
-                height: auto;
-                padding: 1rem;
-                gap: 1.5rem;
-            }
-            .left-panel {
-                max-width: 100%;
-                flex: none;
-            }
-            .right-panel {
-                flex: none;
-                height: 500px; /* Fixed height for the log monitor on mobile */
-            }
-            header {
-                padding: 1rem;
-            }
+            body { height: auto; }
+            .main-workspace { flex-direction: column; height: auto; padding: 1rem; gap: 1.5rem; }
+            .left-panel { max-width: 100%; flex: none; }
+            .right-panel { flex: none; height: 500px; }
+            header { padding: 1rem; }
             h1 { font-size: 1.25rem; }
         }
     </style>
@@ -256,7 +218,7 @@
             <div id="form-browse" class="activity-section active">
                 <div class="input-group">
                     <label for="url">Target URL</label>
-                    <input type="text" id="url" value="http://www.youtube.com" placeholder="e.g., http://www.example.com">
+                    <input type="text" id="url" value="http://www.youtube.com">
                 </div>
                 <button class="action-btn" onclick="triggerAction('browse')">Execute Request</button>
             </div>
@@ -290,7 +252,17 @@
         </div>
 
         <div class="panel right-panel">
-            <h2>Sequence Visualizer</h2>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <h2>Sequence Visualizer</h2>
+            </div>
+            
+            <div class="controls-container" id="playback-controls">
+                <button class="control-btn" onclick="replaySequence()">⏪ Replay</button>
+                <button class="control-btn" onclick="stepBackward()">⏮ Back</button>
+                <button class="control-btn" onclick="togglePlayPause()" id="play-pause-btn">⏸ Pause</button>
+                <button class="control-btn" onclick="stepForward()">⏭ Forward</button>
+            </div>
+
             <div id="log-container">
                 <div style="display: flex; height: 100%; align-items: center; justify-content: center; color: var(--text-secondary); font-style: italic; font-size: 0.875rem;">
                     Standby: Awaiting client operation...
@@ -300,148 +272,169 @@
     </div>
 
     <script>
-        // --- Theme Toggle Logic ---
+        // --- Theme & Canvas Logic ---
         function toggleTheme() {
             const html = document.documentElement;
-            const current = html.getAttribute('data-theme');
-            const target = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', target);
+            html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
             updateCanvasColors(); 
         }
-
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.setAttribute('data-theme', 'dark');
         }
 
-        // --- Core Application Logic ---
-        function switchActivity() {
-            document.querySelectorAll('.activity-section').forEach(el => el.classList.remove('active'));
-            const selected = document.getElementById('activity-selector').value;
-            document.getElementById(`form-${selected}`).classList.add('active');
-        }
-
-        async function triggerAction(type) {
-            const logContainer = document.getElementById('log-container');
-            logContainer.innerHTML = ''; 
-            
-            let payload = {};
-            if (type === 'browse') payload = { url: document.getElementById('url').value };
-            if (type === 'mail') payload = { 
-                to_email: document.getElementById('to_email').value,
-                subject: document.getElementById('subject').value,
-                body: document.getElementById('body').value
-            };
-            if (type === 'stream') payload = { quality: document.getElementById('quality').value };
-
-            try {
-                const response = await fetch(`/api/${type}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await response.json();
-                animateSequence(data.sequence);
-            } catch (error) {
-                logContainer.innerHTML = `<div style="color: red; padding: 1rem;">Connection error. Ensure backend is running.</div>`;
-            }
-        }
-
-        function animateSequence(sequence) {
-            const logContainer = document.getElementById('log-container');
-            let delay = 0;
-            
-            sequence.forEach((step) => {
-                setTimeout(() => {
-                    const div = document.createElement('div');
-                    div.className = `log-entry log-${step.type}`;
-                    const directionArrow = step.type === 'out' ? '➔' : '➔';
-                    
-                    div.innerHTML = `
-                        <div class="meta">
-                            <span>${step.sender} ${directionArrow} ${step.receiver}</span>
-                            <span class="protocol-badge">${step.protocol}</span>
-                        </div>
-                        <pre>${step.msg}</pre>
-                    `;
-                    logContainer.appendChild(div);
-                    // Ensure the container auto-scrolls to the newest entry
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }, delay);
-                delay += 1200; 
-            });
-        }
-
-        // --- Starfield Background Logic ---
         const canvas = document.getElementById('star-canvas');
         const ctx = canvas.getContext('2d');
-        let stars = [];
-        let starColor = '';
+        let stars = [], starColor = '';
 
         function updateCanvasColors() {
-            const style = getComputedStyle(document.body);
-            starColor = style.getPropertyValue('--star-color').trim();
+            starColor = getComputedStyle(document.body).getPropertyValue('--star-color').trim();
         }
-
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             updateCanvasColors();
         }
-
         class Star {
-            constructor() {
-                this.reset();
-                this.y = Math.random() * canvas.height; 
-            }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = 0;
-                this.size = Math.random() * 2;
-                this.speed = (Math.random() * 0.5) + 0.1;
-                this.opacity = (Math.random() * 0.5) + 0.3;
-            }
-            update() {
-                this.y += this.speed;
-                if (this.y > canvas.height) {
-                    this.reset();
-                }
-            }
+            constructor() { this.reset(); this.y = Math.random() * canvas.height; }
+            reset() { this.x = Math.random() * canvas.width; this.y = 0; this.size = Math.random() * 2; this.speed = (Math.random() * 0.5) + 0.1; this.opacity = (Math.random() * 0.5) + 0.3; }
+            update() { this.y += this.speed; if (this.y > canvas.height) this.reset(); }
             draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = starColor.replace(')', `, ${this.opacity})`).replace('rgb', 'rgba'); 
-                
                 if (starColor.includes('rgba')) {
-                    const parts = starColor.split(',');
-                    parts[3] = ` ${this.opacity})`;
-                    ctx.fillStyle = parts.join(',');
+                    const parts = starColor.split(','); parts[3] = ` ${this.opacity})`; ctx.fillStyle = parts.join(',');
                 }
-                
                 ctx.fill();
             }
         }
-
         function initStars() {
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas(); window.addEventListener('resize', resizeCanvas);
             const starCount = Math.floor((canvas.width * canvas.height) / 4000); 
             for (let i = 0; i < starCount; i++) stars.push(new Star());
             animateStars();
         }
-
         function animateStars() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < stars.length; i++) {
-                stars[i].update();
-                stars[i].draw();
-            }
+            for (let i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(); }
             requestAnimationFrame(animateStars);
         }
+        updateCanvasColors(); initStars();
 
-        // Boot
-        updateCanvasColors();
-        initStars();
+        // --- Protocol Sequence Application Logic ---
+        let currentSequence = [];
+        let stepIndex = 0;
+        let playTimer = null;
+        let isPlaying = false;
+
+        function switchActivity() {
+            document.querySelectorAll('.activity-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`form-${document.getElementById('activity-selector').value}`).classList.add('active');
+        }
+
+        async function triggerAction(type) {
+            document.getElementById('log-container').innerHTML = ''; 
+            document.getElementById('playback-controls').style.display = 'none';
+            clearTimeout(playTimer);
+
+            let payload = {};
+            if (type === 'browse') payload = { url: document.getElementById('url').value };
+            if (type === 'mail') payload = { to_email: document.getElementById('to_email').value, subject: document.getElementById('subject').value, body: document.getElementById('body').value };
+            if (type === 'stream') payload = { quality: document.getElementById('quality').value };
+
+            try {
+                const response = await fetch(`/api/${type}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                startSequence(data.sequence);
+            } catch (error) {
+                document.getElementById('log-container').innerHTML = `<div style="color: red; padding: 1rem;">Connection error. Ensure backend is running.</div>`;
+            }
+        }
+
+        // --- Playback Controls Logic ---
+        function startSequence(sequence) {
+            currentSequence = sequence;
+            stepIndex = 0;
+            isPlaying = true;
+            document.getElementById('log-container').innerHTML = '';
+            document.getElementById('playback-controls').style.display = 'flex';
+            document.getElementById('play-pause-btn').innerHTML = '⏸ Pause';
+            playNextStep();
+        }
+
+        function playNextStep() {
+            if (!isPlaying) return;
+            if (stepIndex >= currentSequence.length) {
+                isPlaying = false;
+                document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
+                return;
+            }
+            renderStep(currentSequence[stepIndex]);
+            stepIndex++;
+            playTimer = setTimeout(playNextStep, 1200);
+        }
+
+        function renderStep(step, animate = true) {
+            const logContainer = document.getElementById('log-container');
+            const div = document.createElement('div');
+            div.className = `log-entry log-${step.type}`;
+            if (!animate) div.style.animation = 'none'; // Skip animation CSS for instant back/forward stepping
+            
+            const directionArrow = step.type === 'out' ? '➔' : '➔';
+            div.innerHTML = `
+                <div class="meta">
+                    <span>${step.sender} ${directionArrow} ${step.receiver}</span>
+                    <span class="protocol-badge">${step.protocol}</span>
+                </div>
+                <pre>${step.msg}</pre>
+            `;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('play-pause-btn');
+            if (isPlaying) {
+                btn.innerHTML = '⏸ Pause';
+                if (stepIndex >= currentSequence.length) startSequence(currentSequence);
+                else playNextStep();
+            } else {
+                btn.innerHTML = '▶️ Play';
+                clearTimeout(playTimer);
+            }
+        }
+
+        function stepForward() {
+            isPlaying = false;
+            document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
+            clearTimeout(playTimer);
+            if (stepIndex < currentSequence.length) {
+                renderStep(currentSequence[stepIndex]);
+                stepIndex++;
+            }
+        }
+
+        function stepBackward() {
+            isPlaying = false;
+            document.getElementById('play-pause-btn').innerHTML = '▶️ Play';
+            clearTimeout(playTimer);
+            if (stepIndex > 0) {
+                stepIndex--;
+                // Clear and redraw all steps up to the previous index instantly
+                const logContainer = document.getElementById('log-container');
+                logContainer.innerHTML = '';
+                for (let i = 0; i < stepIndex; i++) {
+                    renderStep(currentSequence[i], false);
+                }
+            }
+        }
+
+        function replaySequence() {
+            clearTimeout(playTimer);
+            startSequence(currentSequence);
+        }
     </script>
 </body>
 </html>
