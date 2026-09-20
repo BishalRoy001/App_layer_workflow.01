@@ -160,7 +160,6 @@
             flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column;
         }
         
-        /* Fully visible by default; only animate when class is explicitly added */
         .log-entry {
             padding: 1.25rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--border-light);
             opacity: 1; transform: translateY(0); flex-shrink: 0;
@@ -279,7 +278,6 @@
     </div>
 
     <script>
-        // --- Theme & Canvas Logic ---
         function toggleTheme() {
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -327,7 +325,6 @@
         }
         updateCanvasColors(); initStars();
 
-        // --- Protocol Sequence Application Logic ---
         let currentSequence = [];
         let stepIndex = 0;
         let playTimer = null;
@@ -359,7 +356,6 @@
             }
         }
 
-        // --- Playback Controls Logic ---
         function updateControlButtons() {
             const backBtn = document.getElementById('btn-back');
             const fwdBtn = document.getElementById('btn-fwd');
@@ -399,7 +395,6 @@
             const div = document.createElement('div');
             div.className = `log-entry log-${step.type} ${animate ? 'animating' : ''}`;
             
-            // Fix: Escape angle brackets so email addresses render correctly
             const escapedMsg = step.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             
             div.innerHTML = `
@@ -446,7 +441,7 @@
                 const logContainer = document.getElementById('log-container');
                 logContainer.innerHTML = '';
                 for (let i = 0; i < stepIndex; i++) {
-                    renderStep(currentSequence[i], false); // Renders instantly with 100% opacity
+                    renderStep(currentSequence[i], false); 
                 }
             }
             updateControlButtons();
