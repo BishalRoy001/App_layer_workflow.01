@@ -50,7 +50,7 @@ def mail(data: MailReq):
         step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: mail.{domain}"),
         step("out", "CLIENT", "SMTP SERVER", "SMTP", "EHLO client.local"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", f"250-mail.{domain} Hello\n250-8BITMIME\n250 OK"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "MAIL FROM: <student@university.edu>"),
+        step("out", "CLIENT", "SMTP SERVER", "SMTP", "MAIL FROM: <Bishal01@gmail.com>"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.0 OK"),
         step("out", "CLIENT", "SMTP SERVER", "SMTP", f"RCPT TO: <{data.to_email}>"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.5 OK"),
