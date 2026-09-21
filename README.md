@@ -8,7 +8,7 @@ A dual-panel web dashboard that simulates and visualizes core application-layer 
 
 ## Preview
 
-![Application Dashboard Preview](screenshot.png)
+![Application Dashboard Preview](ui.png)
 
 ---
 
