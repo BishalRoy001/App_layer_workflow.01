@@ -6,7 +6,7 @@
     <title>Application Layer Visualizer</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
+        
         :root {
             --bg-body: #f4f5f7;
             --bg-surface: #ffffff;
@@ -38,8 +38,8 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-body);
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-body);
             color: var(--text-primary);
             margin: 0;
             padding: 0;
@@ -48,75 +48,61 @@
             min-height: 100vh;
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         #star-canvas {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             z-index: -1;
             pointer-events: none;
         }
 
         header {
-            background-color: var(--bg-surface);
+            background: var(--bg-surface);
             border-bottom: 1px solid var(--border-light);
             padding: 1.5rem 2rem;
             text-align: center;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.02);
             position: relative;
         }
 
         .theme-toggle {
-            position: absolute;
-            right: 2rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: 1px solid var(--border-light);
-            color: var(--text-primary);
-            font-size: 1.25rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            padding: 0;
-            margin: 0;
-            transition: all 0.2s ease;
+            position: absolute; right: 2rem; top: 50%;
+            transform: translateY(-50%); background: transparent;
+            border: 1px solid var(--border-light); color: var(--text-primary);
+            font-size: 1.25rem; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; transition: 0.2s ease;
         }
 
         .theme-toggle:hover { background: var(--border-light); }
-
         h1 { margin: 0; font-weight: 600; font-size: 1.5rem; letter-spacing: -0.02em; }
-        .subtitle { margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary); font-weight: 400; }
-        
+        .subtitle { margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-secondary); }
+
         .main-workspace {
-            display: flex; gap: 2rem; padding: 2rem; flex: 1; max-width: 1400px; 
-            margin: 0 auto; width: 100%; box-sizing: border-box; height: calc(100vh - 100px); 
+            display: flex; gap: 2rem; padding: 2rem; flex: 1;
+            max-width: 1400px; margin: 0 auto; width: 100%;
+            box-sizing: border-box; height: calc(100vh - 100px);
         }
 
         .panel {
             background: var(--bg-surface); border: 1px solid var(--border-light);
             border-radius: 8px; padding: 2rem; display: flex; flex-direction: column;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.3s ease;
         }
 
         .left-panel { flex: 1 1 350px; max-width: 450px; height: fit-content; }
         .right-panel { flex: 2 1 500px; background: rgba(var(--bg-surface), 0.85); backdrop-filter: blur(4px); overflow: hidden; }
 
-        h2 { 
-            font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-            color: var(--text-secondary); border-bottom: 1px solid var(--border-light); 
-            padding-bottom: 0.75rem; margin-top: 0; margin-bottom: 1.5rem; flex-shrink: 0;
+        h2 {
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light); padding-bottom: 0.75rem;
+            margin-top: 0; margin-bottom: 1.5rem; flex-shrink: 0;
         }
-        
+
         .activity-section { display: none; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}
         .activity-section.active { display: flex; }
         label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
@@ -124,8 +110,9 @@
 
         select, input, textarea {
             width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--border-light);
-            border-radius: 6px; font-family: inherit; font-size: 0.875rem; box-sizing: border-box;
-            background-color: var(--bg-body); color: var(--text-primary); transition: all 0.2s ease;
+            border-radius: 6px; font-family: inherit; font-size: 0.875rem;
+            box-sizing: border-box; background: var(--bg-body); color: var(--text-primary);
+            transition: 0.2s ease;
         }
 
         select:focus, input:focus, textarea:focus {
@@ -134,78 +121,72 @@
         }
 
         button.action-btn {
-            background: var(--accent-primary); color: white; border: none; font-weight: 500;
-            font-size: 0.875rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; 
-            width: 100%; margin-top: 0.5rem; transition: background-color 0.2s ease;
+            background: var(--accent-primary); color: white; border: none;
+            font-weight: 500; font-size: 0.875rem; padding: 0.75rem;
+            border-radius: 6px; cursor: pointer; width: 100%;
+            margin-top: 0.5rem; transition: 0.2s ease;
         }
+
         button.action-btn:hover { background: var(--accent-hover); }
 
-        /* Playback Controls */
-        .controls-container {
-            display: none; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-shrink: 0;
-        }
+        .controls-container { display: none; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-shrink: 0; }
+        
         .control-btn {
-            background: var(--bg-body); color: var(--text-primary); border: 1px solid var(--border-light);
-            font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
-            transition: all 0.2s ease; font-weight: 500;
-        }
-        .control-btn:hover:not(:disabled) { background: var(--border-light); }
-        .control-btn:active:not(:disabled) { transform: translateY(1px); }
-        .control-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        #log-container {
-            flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column;
+            background: var(--bg-body); color: var(--text-primary);
+            border: 1px solid var(--border-light); font-size: 0.875rem;
+            padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
+            transition: 0.2s ease; font-weight: 500;
         }
         
+        .control-btn:hover:not(:disabled) { background: var(--border-light); }
+        .control-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        #log-container { flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; }
+        
         .log-entry {
-            padding: 1.25rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--border-light);
-            opacity: 1; transform: translateY(0); flex-shrink: 0;
+            padding: 1.25rem; margin-bottom: 1rem; border-radius: 6px;
+            border: 1px solid var(--border-light); opacity: 1;
+            transform: translateY(0); flex-shrink: 0;
         }
-        .log-entry.animating {
-            opacity: 0; transform: translateY(10px); animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        
+        .log-entry.animating { opacity: 0; transform: translateY(10px); animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .log-out { background: var(--log-out); border-left: 4px solid var(--log-border-out); }
         .log-in { background: var(--log-in); border-left: 4px solid var(--log-border-in); }
         
-        .meta { 
-            display: flex; align-items: center; justify-content: space-between; font-weight: 600; 
-            margin-bottom: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;
+        .meta {
+            display: flex; align-items: center; justify-content: space-between;
+            font-weight: 600; margin-bottom: 0.75rem; font-size: 0.75rem;
+            color: var(--text-secondary); text-transform: uppercase;
         }
+        
         .protocol-badge {
-            background-color: var(--bg-body); padding: 0.25rem 0.5rem; border-radius: 4px;
-            border: 1px solid var(--border-light); font-weight: 600; color: var(--text-primary);
+            background: var(--bg-body); padding: 0.25rem 0.5rem;
+            border-radius: 4px; border: 1px solid var(--border-light); color: var(--text-primary);
         }
-        pre { 
-            margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; 
-            font-size: 0.875rem; line-height: 1.6; color: var(--text-primary);
-        }
+        
+        pre { margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; line-height: 1.6; }
         
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 4px; }
-
+        
         @media (max-width: 900px) {
             body { height: auto; }
             .main-workspace { flex-direction: column; height: auto; padding: 1rem; gap: 1.5rem; }
             .left-panel { max-width: 100%; flex: none; }
             .right-panel { flex: none; height: 500px; }
             header { padding: 1rem; }
-            h1 { font-size: 1.25rem; }
         }
     </style>
 </head>
 <body>
-
     <canvas id="star-canvas"></canvas>
-
+    
     <header>
         <h1>Application Layer Dashboard</h1>
         <p class="subtitle">Live Protocol Synchronization Monitor</p>
-        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle Dark/Light Mode">🌓</button>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle Mode">🌓</button>
     </header>
     
     <div class="main-workspace">
@@ -220,34 +201,34 @@
                     <option value="stream">HTTP Adaptive Streaming</option>
                 </select>
             </div>
-
+            
             <div id="form-browse" class="activity-section active">
                 <div class="input-group">
-                    <label for="url">Target URL</label>
+                    <label>Target URL</label>
                     <input type="text" id="url" value="http://www.youtube.com">
                 </div>
                 <button class="action-btn" onclick="triggerAction('browse')">Execute Request</button>
             </div>
-
+            
             <div id="form-mail" class="activity-section">
                 <div class="input-group">
-                    <label for="to_email">Recipient Address</label>
+                    <label>Recipient Address</label>
                     <input type="text" id="to_email" value="instructor@university.edu">
                 </div>
                 <div class="input-group">
-                    <label for="subject">Subject Line</label>
+                    <label>Subject Line</label>
                     <input type="text" id="subject" value="Protocol Assignment">
                 </div>
                 <div class="input-group">
-                    <label for="body">Message Payload</label>
+                    <label>Message Payload</label>
                     <textarea id="body" rows="4">Please find my submission attached.</textarea>
                 </div>
                 <button class="action-btn" onclick="triggerAction('mail')">Transmit Data</button>
             </div>
-
+            
             <div id="form-stream" class="activity-section">
                 <div class="input-group">
-                    <label for="quality">Stream Resolution</label>
+                    <label>Stream Resolution</label>
                     <select id="quality">
                         <option value="1080p">1080p High Definition</option>
                         <option value="720p">720p Standard</option>
@@ -256,21 +237,18 @@
                 <button class="action-btn" onclick="triggerAction('stream')">Initialize Stream</button>
             </div>
         </div>
-
+        
         <div class="panel right-panel">
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h2>Sequence Visualizer</h2>
-            </div>
-            
+            <h2>Sequence Visualizer</h2>
             <div class="controls-container" id="playback-controls">
                 <button class="control-btn" onclick="replaySequence()">⏪ Replay</button>
                 <button class="control-btn" id="btn-back" onclick="stepBackward()">⏮ Back</button>
                 <button class="control-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
                 <button class="control-btn" id="btn-fwd" onclick="stepForward()">⏭ Forward</button>
             </div>
-
+            
             <div id="log-container">
-                <div style="display: flex; height: 100%; align-items: center; justify-content: center; color: var(--text-secondary); font-style: italic; font-size: 0.875rem;">
+                <div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--text-secondary);font-style:italic;font-size:0.875rem;">
                     Standby: Awaiting client operation...
                 </div>
             </div>
@@ -278,178 +256,150 @@
     </div>
 
     <script>
+        const $ = id => document.getElementById(id);
+        const html = document.documentElement;
+
         function toggleTheme() {
-            const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
             updateCanvasColors(); 
         }
+        
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            html.setAttribute('data-theme', 'dark');
         }
 
-        const canvas = document.getElementById('star-canvas');
-        const ctx = canvas.getContext('2d');
+        const cvs = $('star-canvas'), ctx = cvs.getContext('2d');
         let stars = [], starColor = '';
 
-        function updateCanvasColors() {
-            starColor = getComputedStyle(document.body).getPropertyValue('--star-color').trim();
-        }
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            updateCanvasColors();
-        }
+        const updateCanvasColors = () => starColor = getComputedStyle(document.body).getPropertyValue('--star-color').trim();
+        const resizeCanvas = () => { cvs.width = window.innerWidth; cvs.height = window.innerHeight; updateCanvasColors(); };
+
         class Star {
-            constructor() { this.reset(); this.y = Math.random() * canvas.height; }
-            reset() { this.x = Math.random() * canvas.width; this.y = 0; this.size = Math.random() * 2; this.speed = (Math.random() * 0.5) + 0.1; this.opacity = (Math.random() * 0.5) + 0.3; }
-            update() { this.y += this.speed; if (this.y > canvas.height) this.reset(); }
+            constructor() { this.reset(); this.y = Math.random() * cvs.height; }
+            reset() { 
+                this.x = Math.random() * cvs.width; 
+                this.y = 0; 
+                this.size = Math.random() * 2; 
+                this.speed = Math.random() * 0.5 + 0.1; 
+                this.opacity = Math.random() * 0.5 + 0.3; 
+            }
+            update() { 
+                this.y += this.speed; 
+                if (this.y > cvs.height) this.reset(); 
+            }
             draw() {
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = starColor.replace(')', `, ${this.opacity})`).replace('rgb', 'rgba'); 
-                if (starColor.includes('rgba')) {
-                    const parts = starColor.split(','); parts[3] = ` ${this.opacity})`; ctx.fillStyle = parts.join(',');
+                let c = starColor.replace(')', `, ${this.opacity})`).replace('rgb', 'rgba');
+                if (starColor.includes('rgba')) { 
+                    let p = starColor.split(','); 
+                    p[3] = ` ${this.opacity})`; 
+                    c = p.join(','); 
                 }
-                ctx.fill();
+                ctx.fillStyle = c; ctx.fill();
             }
         }
+        
         function initStars() {
             resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-            const starCount = Math.floor((canvas.width * canvas.height) / 4000); 
-            for (let i = 0; i < starCount; i++) stars.push(new Star());
+            for (let i = 0; i < Math.floor((cvs.width * cvs.height) / 4000); i++) stars.push(new Star());
             animateStars();
         }
-        function animateStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(); }
-            requestAnimationFrame(animateStars);
+        
+        function animateStars() { 
+            ctx.clearRect(0, 0, cvs.width, cvs.height); 
+            stars.forEach(s => { s.update(); s.draw(); }); 
+            requestAnimationFrame(animateStars); 
         }
+        
         updateCanvasColors(); initStars();
 
-        let currentSequence = [];
-        let stepIndex = 0;
-        let playTimer = null;
-        let isPlaying = false;
+        let seq = [], stepIdx = 0, timer = null, playing = false;
 
         function switchActivity() {
             document.querySelectorAll('.activity-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`form-${document.getElementById('activity-selector').value}`).classList.add('active');
+            $(`form-${$('activity-selector').value}`).classList.add('active');
         }
 
         async function triggerAction(type) {
-            document.getElementById('log-container').innerHTML = ''; 
-            document.getElementById('playback-controls').style.display = 'none';
-            clearTimeout(playTimer);
-
+            $('log-container').innerHTML = '';$('playback-controls').style.display = 'none'; 
+            clearTimeout(timer);
+            
             let payload = {};
-            if (type === 'browse') payload = { url: document.getElementById('url').value };
-            if (type === 'mail') payload = { to_email: document.getElementById('to_email').value, subject: document.getElementById('subject').value, body: document.getElementById('body').value };
-            if (type === 'stream') payload = { quality: document.getElementById('quality').value };
+            if (type === 'browse') payload = { url: $('url').value };
+            if (type === 'mail') payload = { to_email: $('to_email').value, subject: $('subject').value, body:$('body').value };
+            if (type === 'stream') payload = { quality: $('quality').value };
 
             try {
-                const response = await fetch(`/api/${type}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                let res = await fetch(`/api/${type}`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(payload) 
                 });
-                const data = await response.json();
-                startSequence(data.sequence);
-            } catch (error) {
-                document.getElementById('log-container').innerHTML = `<div style="color: red; padding: 1rem;">Connection error. Ensure backend is running.</div>`;
+                let data = await res.json();
+                startSeq(data.sequence);
+            } catch (e) {
+                $('log-container').innerHTML = `<div style="color:red;padding:1rem;">Connection error.</div>`;
             }
         }
 
-        function updateControlButtons() {
-            const backBtn = document.getElementById('btn-back');
-            const fwdBtn = document.getElementById('btn-fwd');
-            const playBtn = document.getElementById('play-pause-btn');
-
-            if (backBtn) backBtn.disabled = (stepIndex <= 0);
-            if (fwdBtn) fwdBtn.disabled = (stepIndex >= currentSequence.length);
-            if (playBtn) playBtn.innerHTML = isPlaying ? '⏸ Pause' : '▶️ Play';
+        function updateBtns() {
+            if ($('btn-back'))$('btn-back').disabled = (stepIdx <= 0);
+            if ($('btn-fwd'))$('btn-fwd').disabled = (stepIdx >= seq.length);
+            if ($('play-pause-btn'))$('play-pause-btn').innerHTML = playing ? '⏸ Pause' : '▶️ Play';
         }
 
-        function startSequence(sequence) {
-            clearTimeout(playTimer);
-            currentSequence = sequence;
-            stepIndex = 0;
-            isPlaying = true;
-            document.getElementById('log-container').innerHTML = '';
-            document.getElementById('playback-controls').style.display = 'flex';
-            updateControlButtons();
-            playNextStep();
+        function startSeq(data) {
+            clearTimeout(timer); seq = data; stepIdx = 0; playing = true;
+            $('log-container').innerHTML = '';$('playback-controls').style.display = 'flex';
+            updateBtns(); playNext();
         }
 
-        function playNextStep() {
-            if (!isPlaying) return;
-            if (stepIndex >= currentSequence.length) {
-                isPlaying = false;
-                updateControlButtons();
-                return;
-            }
-            renderStep(currentSequence[stepIndex], true);
-            stepIndex++;
-            updateControlButtons();
-            playTimer = setTimeout(playNextStep, 1200);
+        function playNext() {
+            if (!playing) return;
+            if (stepIdx >= seq.length) { playing = false; updateBtns(); return; }
+            render(seq[stepIdx], true); stepIdx++; updateBtns();
+            timer = setTimeout(playNext, 1200);
         }
 
-        function renderStep(step, animate = false) {
-            const logContainer = document.getElementById('log-container');
-            const div = document.createElement('div');
-            div.className = `log-entry log-${step.type} ${animate ? 'animating' : ''}`;
-            
-            const escapedMsg = step.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            
-            div.innerHTML = `
-                <div class="meta">
-                    <span>${step.sender} ➔ ${step.receiver}</span>
-                    <span class="protocol-badge">${step.protocol}</span>
-                </div>
-                <pre>${escapedMsg}</pre>
-            `;
-            logContainer.appendChild(div);
-            logContainer.scrollTop = logContainer.scrollHeight;
+        function render(step, anim = false) {
+            let div = document.createElement('div');
+            div.className = `log-entry log-${step.type} ${anim ? 'animating' : ''}`;
+            let msg = step.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            div.innerHTML = `<div class="meta"><span>${step.sender} ➔ ${step.receiver}</span><span class="protocol-badge">${step.protocol}</span></div><pre>${msg}</pre>`;
+            $('log-container').appendChild(div);
+            $('log-container').scrollTop =$('log-container').scrollHeight;
         }
 
         function togglePlayPause() {
-            if (isPlaying) {
-                isPlaying = false;
-                clearTimeout(playTimer);
-            } else {
-                if (stepIndex >= currentSequence.length) {
-                    startSequence(currentSequence);
-                    return;
-                }
-                isPlaying = true;
-                playNextStep();
+            if (playing) { 
+                playing = false; 
+                clearTimeout(timer); 
+            } else { 
+                if (stepIdx >= seq.length) return startSeq(seq); 
+                playing = true; 
+                playNext(); 
             }
-            updateControlButtons();
+            updateBtns();
         }
 
         function stepForward() {
-            clearTimeout(playTimer);
-            isPlaying = false;
-            if (stepIndex < currentSequence.length) {
-                renderStep(currentSequence[stepIndex], true);
-                stepIndex++;
-            }
-            updateControlButtons();
+            clearTimeout(timer); playing = false;
+            if (stepIdx < seq.length) { render(seq[stepIdx], true); stepIdx++; }
+            updateBtns();
         }
 
         function stepBackward() {
-            clearTimeout(playTimer);
-            isPlaying = false;
-            if (stepIndex > 0) {
-                stepIndex--;
-                const logContainer = document.getElementById('log-container');
-                logContainer.innerHTML = '';
-                for (let i = 0; i < stepIndex; i++) {
-                    renderStep(currentSequence[i], false); 
-                }
+            clearTimeout(timer); playing = false;
+            if (stepIdx > 0) {
+                stepIdx--; $('log-container').innerHTML = '';
+                for (let i = 0; i < stepIdx; i++) render(seq[i], false);
             }
-            updateControlButtons();
+            updateBtns();
         }
 
-        function replaySequence() {
-            clearTimeout(playTimer);
-            startSequence(currentSequence);
+        function replaySequence() { 
+            clearTimeout(timer); 
+            startSeq(seq); 
         }
     </script>
 </body>
