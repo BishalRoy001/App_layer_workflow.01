@@ -1,123 +1,80 @@
-from pathlib import Path
-from urllib.parse import urlparse
-import socket
-
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from urllib.parse import urlparse
+import socket  # Added to perform real DNS lookups
 
 app = FastAPI()
-BASE_DIR = Path(__file__).resolve().parent
 
-
-class BrowseReq(BaseModel):
+class BrowseRequest(BaseModel):
     url: str
 
-
-class MailReq(BaseModel):
+class MailRequest(BaseModel):
     to_email: str
     subject: str
     body: str
 
-
-class StreamReq(BaseModel):
+class StreamRequest(BaseModel):
     quality: str
 
-
-def step(direction, sender, receiver, protocol, text):
-    return {"type": direction, "sender": sender, "receiver": receiver, "protocol": protocol, "msg": text}
-
-
 @app.get("/")
-def serve_ui():
-    return FileResponse(BASE_DIR / "index.html")
-
+def serve_frontend():
+    return FileResponse("index.html")
 
 @app.post("/api/browse")
-def browse(data: BrowseReq):
-    url = data.url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = "http://" + url
-
-    p = urlparse(url)
-    host = p.netloc or "example.com"
-    path = (p.path or "/") + ("?" + p.query if p.query else "")
-
+def simulate_browse(req: BrowseRequest):
+    # Extract just the domain name (e.g., www.youtube.com)
+    domain = urlparse(req.url).netloc or req.url
+    
+    # Dynamically resolve the real IP address!
     try:
-        ip = socket.gethostbyname(host)
-    except Exception:
-        ip = "192.0.2.1"
-
-    return {"sequence": [
-        # Network / DNS Layer
-        step("out", "CLIENT", "DNS SERVER", "DNS", f"Query A Record: {host}"),
-        step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: {ip} (Resolved via socket)"),
-
-        # Transport Layer (TCP 3-Way Handshake)
-        step("out", "CLIENT", "WEB SERVER", "TCP", "SYN Segment [Port 80/443] (Seq=0, Win=64240)"),
-        step("in", "WEB SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1, Win=29200)"),
-        step("out", "CLIENT", "WEB SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
-
-        # Application Layer (HTTP)
-        step("out", "CLIENT", "WEB SERVER", "HTTP", f"GET {path} HTTP/1.1\nHost: {host}\nAccept: text/html"),
-        step("in", "WEB SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: text/html\n\n[HTML Document Payload]"),
-    ]}
-
+        resolved_ip = socket.gethostbyname(domain)
+    except socket.gaierror:
+        # Fallback to a default IP if the domain is fake or offline
+        resolved_ip = "93.184.216.34" 
+        
+    return {
+        "sequence": [
+            {"sender": "Client", "receiver": "DNS Server", "protocol": "DNS", "msg": f"Query A Record: {domain}", "type": "out"},
+            {"sender": "DNS Server", "receiver": "Client", "protocol": "DNS", "msg": f"Response: {resolved_ip}", "type": "in"},
+            {"sender": "Client", "receiver": "Web Server", "protocol": "HTTP", "msg": f"GET / HTTP/1.1\nHost: {domain}\nAccept: text/html", "type": "out"},
+            {"sender": "Web Server", "receiver": "Client", "protocol": "HTTP", "msg": "HTTP/1.1 200 OK\nContent-Type: text/html\n\n<!DOCTYPE html>...", "type": "in"}
+        ]
+    }
 
 @app.post("/api/mail")
-def mail(data: MailReq):
-    parts = data.to_email.split("@")
-    domain = parts[1] if len(parts) > 1 else "local.edu"
-
-    return {"sequence": [
-        # DNS
-        step("out", "CLIENT", "DNS SERVER", "DNS", f"Query MX Record: {domain}"),
-        step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: mail.{domain}"),
-
-        # Transport Layer (TCP for SMTP)
-        step("out", "CLIENT", "SMTP SERVER", "TCP", "SYN Segment [Port 25/587] (Seq=0)"),
-        step("in", "SMTP SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1)"),
-        step("out", "CLIENT", "SMTP SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
-
-        # Application Layer (SMTP Conversation)
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "EHLO client.local"),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", f"250-mail.{domain} Hello\n250-8BITMIME\n250 OK"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "MAIL FROM: <student@university.edu>"),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.0 OK"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", f"RCPT TO: <{data.to_email}>"),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.5 OK"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "DATA"),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", "354 End data with <CR><LF>.<CR><LF>"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", f"Subject: {data.subject}\n\n{data.body}\n."),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.0.0 Ok: queued as 7F3B1C"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "QUIT"),
-        step("in", "SMTP SERVER", "CLIENT", "SMTP", "221 2.0.0 Bye"),
-    ]}
-
+def simulate_mail(req: MailRequest):
+    domain = req.to_email.split('@')[-1] if '@' in req.to_email else "university.edu"
+    return {
+        "sequence": [
+            {"sender": "Client", "receiver": "DNS Server", "protocol": "DNS", "msg": f"Query MX Record: {domain}", "type": "out"},
+            {"sender": "DNS Server", "receiver": "Client", "protocol": "DNS", "msg": f"Response: mail.{domain}", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": "EHLO client.local", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "250-mail.server.com Hello\n250-8BITMIME\n250 OK", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": "MAIL FROM: <student@local.com>", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "250 2.1.0 OK", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": f"RCPT TO: <{req.to_email}>", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "250 2.1.5 OK", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": "DATA", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "354 End data with <CR><LF>.<CR><LF>", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": f"Subject: {req.subject}\n\n{req.body}\n.", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "250 2.0.0 Ok: queued as 7F3B1C", "type": "in"},
+            {"sender": "Client", "receiver": "SMTP Server", "protocol": "SMTP", "msg": "QUIT", "type": "out"},
+            {"sender": "SMTP Server", "receiver": "Client", "protocol": "SMTP", "msg": "221 2.0.0 Bye", "type": "in"}
+        ]
+    }
 
 @app.post("/api/stream")
-def stream(data: StreamReq):
-    cdn = "cdn.stream.com"
-    try:
-        ip = socket.gethostbyname(cdn)
-    except Exception:
-        ip = "198.51.100.14"
-
-    return {"sequence": [
-        # DNS
-        step("out", "CLIENT", "DNS SERVER", "DNS", f"Query A Record: {cdn}"),
-        step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: {ip}"),
-
-        # Transport Layer (TCP for HLS Streaming)
-        step("out", "CLIENT", "VIDEO SERVER", "TCP", "SYN Segment [Port 443] (Seq=0)"),
-        step("in", "VIDEO SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1)"),
-        step("out", "CLIENT", "VIDEO SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
-
-        # Application Layer (HLS Manifest & Segments)
-        step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /master_manifest.m3u8 HTTP/1.1\nHost: {cdn}"),
-        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]"),
-        step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /segments/{data.quality}/seg_001.ts HTTP/1.1\nHost: {cdn}"),
-        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment 1]"),
-        step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /segments/{data.quality}/seg_002.ts HTTP/1.1\nHost: {cdn}"),
-        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment 2]"),
-    ]}
+def simulate_stream(req: StreamRequest):
+    return {
+        "sequence": [
+            {"sender": "Client", "receiver": "DNS Server", "protocol": "DNS", "msg": "Query A Record: cdn.stream.com", "type": "out"},
+            {"sender": "DNS Server", "receiver": "Client", "protocol": "DNS", "msg": "Response: 198.51.100.14", "type": "in"},
+            {"sender": "Client", "receiver": "Video Server", "protocol": "HTTP", "msg": "GET /master_manifest.m3u8 HTTP/1.1", "type": "out"},
+            {"sender": "Video Server", "receiver": "Client", "protocol": "HTTP", "msg": "HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl", "type": "in"},
+            {"sender": "Client", "receiver": "Video Server", "protocol": "HTTP", "msg": f"GET /segments/{req.quality}/seg_001.ts HTTP/1.1", "type": "out"},
+            {"sender": "Video Server", "receiver": "Client", "protocol": "HTTP", "msg": "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n[Binary Video Data]", "type": "in"},
+            {"sender": "Client", "receiver": "Video Server", "protocol": "HTTP", "msg": f"GET /segments/{req.quality}/seg_002.ts HTTP/1.1", "type": "out"},
+            {"sender": "Video Server", "receiver": "Client", "protocol": "HTTP", "msg": "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n[Binary Video Data]", "type": "in"}
+        ]
+    }
