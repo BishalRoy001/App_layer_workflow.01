@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Protocol Flow</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#fafaf9;--surface:#fff;--ink:#18181b;--ink2:#71717a;--line:#e7e5e4;--soft:#f4f4f2;--dns:#7c3aed;--tcp:#d97706;--app:#2563eb}
@@ -32,12 +33,18 @@ input,select{font:inherit;font-size:.9rem;color:var(--ink);background:var(--surf
 input:focus,select:focus{border-color:var(--ink2)}
 .run{font:inherit;font-weight:500;font-size:.9rem;background:var(--ink);color:var(--bg);border:0;border-radius:10px;padding:.66rem 1.4rem;cursor:pointer}
 .run:hover{opacity:.88}
+.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + .5rem);z-index:4;height:clamp(210px,34vh,290px);margin-top:2rem;border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden;box-shadow:0 18px 40px -28px rgba(0,0,0,.35)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.nl{position:absolute;transform:translateX(-50%);text-align:center;font-size:.76rem;font-weight:600;pointer-events:none;line-height:1.25}
+.nl small{display:block;font-weight:400;font-size:.66rem;color:var(--ink2)}
+.cap{position:absolute;left:1rem;top:.85rem;font:500 .72rem 'JetBrains Mono',monospace;color:var(--ink2);display:flex;gap:.5rem;align-items:center}
+.cap b{color:var(--c,var(--ink));font-weight:600}
 .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:2.5rem 0 1.25rem}
 .ph{font-size:.72rem;font-weight:500;color:var(--ink2)}
 .ph::before{content:"";display:block;height:2px;background:var(--line);border-radius:2px;margin-bottom:.45rem;transition:background .3s}
 .ph.done::before{background:var(--c)}.ph.act::before{background:var(--c);height:3px}.ph.act{color:var(--ink)}
 .diagram{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0 0 .5rem}
-.heads{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:1.1rem 0;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);border-radius:16px 16px 0 0;z-index:2}
+.heads{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:1.1rem 0;border-bottom:1px solid var(--line);background:var(--surface);border-radius:16px 16px 0 0}
 .heads div{font-size:.8rem;font-weight:600}.heads small{display:block;color:var(--ink2);font-weight:400;font-size:.7rem}
 .rows{position:relative;min-height:220px}
 .ll{position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(var(--line) 0 4px,transparent 4px 8px)}
@@ -91,6 +98,12 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);hei
   <button class="run" onclick="go('mail')">Run</button></div>
  <div class="form" id="f-stream"><div class="fld"><label>Resolution</label><select id="q"><option value="1080p">1080p</option><option value="720p">720p</option></select></div><button class="run" onclick="go('stream')">Run</button></div>
 
+ <div class="stage" id="stage"><canvas id="cv"></canvas>
+ <div class="cap" id="cap">Awaiting a request</div>
+ <div class="nl" id="nl0"><span>Client</span><small>your device</small></div>
+ <div class="nl" id="nl1"><span>DNS server</span><small>resolver</small></div>
+ <div class="nl" id="nl2"><span>Remote server</span><small>remote host</small></div>
+</div>
  <div class="phases">
   <div class="ph" style="--c:var(--dns)">1 · Name lookup</div>
   <div class="ph" style="--c:var(--tcp)">2 · Connection</div>
@@ -121,7 +134,7 @@ const $=id=>document.getElementById(id);
 const PLAY='<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>',PAUSE='<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>';
 const lane=n=>n==='CLIENT'?16.667:n==='DNS SERVER'?50:83.333;
 const cap=n=>n.charAt(0)+n.slice(1).toLowerCase();
-function theme(){const r=document.documentElement;const dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=dark?'light':'dark'}
+function theme(){const r=document.documentElement;const dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=dark?'light':'dark';setTimeout(()=>{if(typeof applyTheme==='function')applyTheme()},0)}
 
 // backend contract: POST /api/{browse|mail|stream} -> {sequence:[{type,sender,receiver,protocol,msg}]}
 const payload=t=>t==='browse'?{url:$('url').value}:t==='mail'?{to_email:$('to').value,subject:$('subj').value,body:$('body').value}:{quality:$('q').value};
@@ -143,6 +156,45 @@ function mock(t,d){
  return[o(K,N,'DNS','Query A Record: '+c),i(N,K,'DNS','Response: 198.51.100.14'),...tcp(V,'SYN Segment [Port 443] (Seq=0)','SYN-ACK Segment (Seq=0, Ack=1)'),
   o(K,V,'HTTP','GET /master_manifest.m3u8 HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]'),...g(1),...g(2)]}
 
+// ---- 3D stage (Three.js) ----
+const P3={CLIENT:new THREE.Vector3(-3.6,-.6,0),'DNS SERVER':new THREE.Vector3(0,1.5,0)},SRV=new THREE.Vector3(3.6,-.6,0);
+const pos3=n=>P3[n]||SRV;
+let R3,cam,scn,mats=[],fl=[],pl=[],th={},mx=0,orbs=[];
+function cols(){const g=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();return{ink:g('--ink'),dns:g('--dns'),tcp:g('--tcp'),app:g('--app')}}
+function applyTheme(){th=cols();mats.forEach(m=>m.color.set(th.ink))}
+function initStage(){
+ const st=$('stage');scn=new THREE.Scene();cam=new THREE.PerspectiveCamera(40,1,.1,100);
+ R3=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true,alpha:true});R3.setPixelRatio(Math.min(devicePixelRatio,2));
+ const mk=(v,o)=>{const wm=new THREE.MeshBasicMaterial({wireframe:true,transparent:true,opacity:.5}),cm=new THREE.MeshBasicMaterial({transparent:true,opacity:.9}),g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(.62,1),wm),new THREE.Mesh(new THREE.SphereGeometry(.14,16,16),cm));g.position.copy(v);scn.add(g);mats.push(wm,cm);orbs.push(g)};
+ [P3.CLIENT,P3['DNS SERVER'],SRV].forEach(mk);
+ [[P3.CLIENT,P3['DNS SERVER']],[P3.CLIENT,SRV]].forEach(([a,b])=>{const lm=new THREE.LineBasicMaterial({transparent:true,opacity:.22});mats.push(lm);scn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a,b]),lm))});
+ applyTheme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(applyTheme,0));
+ const size=()=>{const w=st.clientWidth,h=st.clientHeight;R3.setSize(w,h,false);cam.aspect=w/h;cam.position.z=Math.max(10.5,4.8/(Math.tan(20*Math.PI/180)*cam.aspect));cam.updateProjectionMatrix()};
+ new ResizeObserver(size).observe(st);size();
+ st.addEventListener('pointermove',e=>{const r=st.getBoundingClientRect();mx=((e.clientX-r.left)/r.width-.5)*2});
+ tick()}
+function fly(s){if(!scn)return;const a=pos3(s.from),b=pos3(s.to),key=['dns','tcp','app'][phase(s.proto)],col=new THREE.Color(th[key]);
+ const mesh=new THREE.Mesh(new THREE.SphereGeometry(.13,16,16),new THREE.MeshBasicMaterial({color:col}));scn.add(mesh);
+ const tr=[...Array(9)].map((_,k)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.1-k*.008,10,10),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.5-k*.055}));scn.add(m);return m});
+ fl.push({t:0,a,b,mesh,tr});ring(a,col);
+ const c=$('cap');c.style.setProperty('--c',th[key]);c.innerHTML='<b>'+s.proto+'</b> '+cap(s.from)+' → '+cap(s.to)}
+function ring(v,col){const m=new THREE.Mesh(new THREE.RingGeometry(.6,.63,48),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide}));m.position.copy(v);scn.add(m);pl.push({m,t:0})}
+const at=(a,b,t)=>new THREE.Vector3().lerpVectors(a,b,t).add(new THREE.Vector3(0,Math.sin(Math.PI*t)*.55,0));
+function tick(){requestAnimationFrame(tick);
+ cam.position.x+=(mx*.7-cam.position.x)*.05;cam.lookAt(0,.3,0);
+ orbs.forEach((o,i)=>{o.rotation.y+=.006;o.rotation.x+=.003*(i+1)});
+ fl=fl.filter(f=>{f.t+=.018;const t=Math.min(f.t,1);
+  f.mesh.visible=f.t<=1;f.mesh.position.copy(at(f.a,f.b,t));
+  f.tr.forEach((m,k)=>{const q=f.t-(k+1)*.03;m.visible=q>0&&q<=1;if(m.visible)m.position.copy(at(f.a,f.b,q))});
+  if(f.t>=1&&!f.hit){f.hit=1;ring(f.b,f.mesh.material.color)}
+  if(f.t>1.4){scn.remove(f.mesh,...f.tr);return false}return true});
+ pl=pl.filter(p=>{p.t+=.025;p.m.scale.setScalar(1+p.t*1.8);p.m.material.opacity=.8*(1-p.t);p.m.lookAt(cam.position);if(p.t>=1){scn.remove(p.m);return false}return true});
+ R3.render(scn,cam);
+ const w=$('stage').clientWidth,h=$('stage').clientHeight;
+ [P3.CLIENT,P3['DNS SERVER'],SRV].forEach((v,i)=>{const p=v.clone().project(cam),l=$('nl'+i);l.style.left=((p.x*.5+.5)*w)+'px';l.style.top=((-p.y*.5+.5)*h+34)+'px'})}
+initStage();
+
 // player
 let seq=[],idx=0,sel=-1,timer=null,playing=false,cur='browse';
 const phase=p=>p==='DNS'?0:p==='TCP'?1:2, pcol=p=>['--dns','--tcp','--app'][phase(p)];
@@ -153,7 +205,7 @@ function rowEl(s,i,anim){
  el.className='row'+(anim?'':' static');el.dataset.i=i;el.style.setProperty('--c','var('+pcol(s.proto)+')');
  let sum=s.msg.split('\n')[0];if(sum.length>30)sum=sum.slice(0,29)+'…';
  el.innerHTML='<div class="arrow '+(right?'r':'l')+'" style="left:'+Math.min(a,b)+'%;width:'+Math.abs(b-a)+'%"></div><div class="lbl" style="left:'+(a+b)/2+'%"><i>'+String(i+1).padStart(2,'0')+'</i><b>'+s.proto+'</b><span>'+esc(sum)+'</span></div>';
- el.onclick=()=>select(i);return el}
+ el.onclick=()=>{select(i);fly(seq[i])};return el}
 function select(i){sel=i;document.querySelectorAll('.row').forEach(r=>r.classList.toggle('sel',+r.dataset.i===i));
  const d=$('detail');if(i<0||!seq[i]){d.style.display='none';return}
  const s=seq[i];d.style.display='block';d.style.setProperty('--c','var('+pcol(s.proto)+')');
@@ -164,13 +216,13 @@ function ui(){
  $('cnt').textContent=idx+'/'+seq.length;$('sc').max=seq.length;$('sc').value=idx;
  $('pp').innerHTML=playing?PAUSE:PLAY;$('bk').disabled=idx<=0;$('fw').disabled=idx>=seq.length;
  $('dock').style.display=seq.length?'flex':'none'}
-function add(anim){const el=rowEl(seq[idx],idx,anim);$('rows').appendChild(el);idx++;select(idx-1);if(anim)el.scrollIntoView({block:'center',behavior:'smooth'})}
+function add(anim){const el=rowEl(seq[idx],idx,anim);$('rows').appendChild(el);idx++;select(idx-1);if(anim){fly(seq[idx-1]);el.scrollIntoView({block:'center',behavior:'smooth'})}}
 function clearRows(){document.querySelectorAll('.row').forEach(r=>r.remove());idx=0;sel=-1}
 async function go(t){clearTimeout(timer);cur=t;playing=false;let data,live=true;
  try{const r=await fetch('/api/'+t,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload(t))});if(!r.ok)throw 0;data=(await r.json()).sequence}
  catch(e){live=false;data=mock(t,payload(t))}
  seq=data.map(norm);const m=$('mode');m.className='mode'+(live?' live':'');m.textContent=live?'Live backend':'Offline demo';
- const rem=(seq.find(x=>x.from!=='CLIENT'&&x.from!=='DNS SERVER')||{from:'REMOTE SERVER'}).from;$('h3').innerHTML=cap(rem)+'<small>remote host</small>';
+ const rem=(seq.find(x=>x.from!=='CLIENT'&&x.from!=='DNS SERVER')||{from:'REMOTE SERVER'}).from;$('h3').innerHTML=cap(rem)+'<small>remote host</small>';$('nl2').firstChild.textContent=cap(rem);
  clearRows();$('empty').style.display='none';playing=true;ui();next()}
 function next(){if(!playing)return;if(idx>=seq.length){playing=false;ui();return}add(true);ui();timer=setTimeout(next,1300)}
 function pause(){playing=false;clearTimeout(timer)}
