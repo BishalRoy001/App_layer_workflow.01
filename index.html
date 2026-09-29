@@ -1,469 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCP/IP Protocol Stack Visualizer</title>
-    <!-- Three.js for 3D Network Visualization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-        
-        :root {
-            --bg-body: #090d16;
-            --bg-surface: #111827;
-            --bg-card: #1f2937;
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --border-color: #374151;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            
-            --badge-dns: #8b5cf6;
-            --badge-tcp: #f59e0b;
-            --badge-http: #3b82f6;
-            --badge-smtp: #10b981;
-        }
-
-        [data-theme="light"] {
-            --bg-body: #f1f5f9;
-            --bg-surface: #ffffff;
-            --bg-card: #f8fafc;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            margin: 0; padding: 0;
-            display: flex; flex-direction: column;
-            min-height: 100vh; box-sizing: border-box;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        header {
-            background-color: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 20px -2px rgba(0,0,0,0.2);
-            z-index: 10;
-        }
-
-        .header-title h1 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.025em; }
-        .header-title p { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
-
-        .theme-toggle {
-            background: var(--bg-card); border: 1px solid var(--border-color);
-            color: var(--text-primary); width: 36px; height: 36px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s ease; font-size: 1rem;
-        }
-        .theme-toggle:hover { border-color: var(--accent); }
-
-        .main-workspace {
-            display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem;
-            padding: 1.5rem 2rem; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%;
-            box-sizing: border-box; height: calc(100vh - 73px);
-        }
-
-        .panel {
-            background-color: var(--bg-surface); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); overflow: hidden;
-        }
-
-        h2 {
-            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-            letter-spacing: 0.1em; color: var(--text-secondary);
-            border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;
-            margin: 0 0 1.25rem 0;
-        }
-
-        .activity-section { display: none; flex-direction: column; gap: 1rem; }
-        .activity-section.active { display: flex; }
-
-        .input-group { display: flex; flex-direction: column; gap: 0.35rem; }
-        label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
-
-        select, input, textarea {
-            background-color: var(--bg-card); border: 1px solid var(--border-color);
-            color: var(--text-primary); padding: 0.65rem 0.85rem; border-radius: 8px;
-            font-family: inherit; font-size: 0.85rem; transition: 0.2s ease; outline: none;
-        }
-        select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-
-        button.action-btn {
-            background-color: var(--accent); color: white; border: none;
-            font-weight: 500; font-size: 0.85rem; padding: 0.75rem;
-            border-radius: 8px; cursor: pointer; transition: 0.2s ease;
-            margin-top: 0.5rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-        }
-        button.action-btn:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
-
-        .right-panel-grid { display: grid; grid-template-rows: 240px 1fr; gap: 1rem; height: 100%; overflow: hidden; }
-
-        /* 3D Canvas Styling */
-        #canvas-container {
-            position: relative; background: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 8px; overflow: hidden; width: 100%; height: 100%;
-        }
-        #topology-canvas { width: 100%; height: 100%; display: block; }
-        .canvas-overlay {
-            position: absolute; bottom: 8px; left: 12px; font-size: 0.7rem;
-            color: var(--text-secondary); background: rgba(0,0,0,0.4); padding: 3px 8px;
-            border-radius: 4px; backdrop-filter: blur(4px); pointer-events: none;
-        }
-
-        .controls-container { display: none; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-        .control-btn {
-            background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color);
-            font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: 500;
-        }
-        .control-btn:hover:not(:disabled) { border-color: var(--accent); }
-        .control-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        #log-container {
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;
-            padding-right: 4px;
-        }
-
-        .log-entry {
-            background: var(--bg-card); border: 1px solid var(--border-color);
-            padding: 1rem; border-radius: 8px; opacity: 0; transform: translateY(10px);
-            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .log-entry.log-out { border-left: 3px solid #10b981; }
-        .log-entry.log-in { border-left: 3px solid var(--accent); }
-
-        .meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
-        .protocol-badge { padding: 2px 6px; border-radius: 4px; color: white; font-size: 0.65srem; font-weight: 600; }
-        .badge-dns { background: var(--badge-dns); }
-        .badge-tcp { background: var(--badge-tcp); }
-        .badge-http { background: var(--badge-http); }
-        .badge-smtp { background: var(--badge-smtp); }
-
-        pre { margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; color: var(--text-primary); }
-
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-
-        @media (max-width: 900px) {
-            .main-workspace { grid-template-columns: 1fr; height: auto; }
-            body { height: auto; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Protocol Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#fafaf9;--surface:#fff;--ink:#18181b;--ink2:#71717a;--line:#e7e5e4;--soft:#f4f4f2;--dns:#7c3aed;--tcp:#d97706;--app:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--surface:#151518;--ink:#f4f4f5;--ink2:#8b8b95;--line:#26262b;--soft:#1b1b1f;--dns:#a78bfa;--tcp:#fbbf24;--app:#60a5fa}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--surface:#151518;--ink:#f4f4f5;--ink2:#8b8b95;--line:#26262b;--soft:#1b1b1f;--dns:#a78bfa;--tcp:#fbbf24;--app:#60a5fa}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.page{max-width:1000px;margin:0 auto;padding:2.25rem 1.5rem 9rem}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3rem}
+.mark{font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:.6rem}
+.mark i{width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:14px 0 0 -3px var(--ink2),28px 0 0 -4px var(--line);margin-right:1.6rem}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:.9rem}
+.ghost:hover{color:var(--ink);border-color:var(--ink2)}
+h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 .6rem}
+.lead{color:var(--ink2);margin:0 0 2.25rem;max-width:34rem}
+.tabs{display:flex;gap:1.5rem;border-bottom:1px solid var(--line);margin-bottom:1.25rem}
+.tab{background:none;border:0;padding:.6rem 0;font:inherit;font-weight:500;color:var(--ink2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-color:var(--ink)}
+.form{display:none;gap:.75rem;align-items:flex-end;flex-wrap:wrap}.form.on{display:flex}
+.fld{display:flex;flex-direction:column;gap:.3rem;flex:1;min-width:160px}
+.fld label{font-size:.72rem;color:var(--ink2);font-weight:500}
+input,select{font:inherit;font-size:.9rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.62rem .8rem;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--ink2)}
+.run{font:inherit;font-weight:500;font-size:.9rem;background:var(--ink);color:var(--bg);border:0;border-radius:10px;padding:.66rem 1.4rem;cursor:pointer}
+.run:hover{opacity:.88}
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:2.5rem 0 1.25rem}
+.ph{font-size:.72rem;font-weight:500;color:var(--ink2)}
+.ph::before{content:"";display:block;height:2px;background:var(--line);border-radius:2px;margin-bottom:.45rem;transition:background .3s}
+.ph.done::before{background:var(--c)}.ph.act::before{background:var(--c);height:3px}.ph.act{color:var(--ink)}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0 0 .5rem}
+.heads{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:1.1rem 0;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:var(--surface);border-radius:16px 16px 0 0;z-index:2}
+.heads div{font-size:.8rem;font-weight:600}.heads small{display:block;color:var(--ink2);font-weight:400;font-size:.7rem}
+.rows{position:relative;min-height:220px}
+.ll{position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(var(--line) 0 4px,transparent 4px 8px)}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);font-size:.85rem}
+.row{position:relative;height:66px;cursor:pointer;border-radius:8px;margin:0 .5rem;--c:var(--app)}
+.row:hover,.row.sel{background:var(--soft)}
+.lbl{position:absolute;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:.74rem;display:flex;gap:.45rem;align-items:center;animation:fade .4s .25s both}
+.lbl i{font-style:normal;font-family:'JetBrains Mono',monospace;color:var(--ink2);font-size:.68rem}
+.lbl b{color:var(--c);font-weight:600}
+.lbl span{color:var(--ink2);font-family:'JetBrains Mono',monospace;font-size:.7rem}
+.arrow{position:absolute;top:42px;height:1.5px;background:var(--c);animation:r .5s cubic-bezier(.3,.7,.2,1) both}
+.arrow.l{animation-name:lf}
+.arrow::before{content:"";position:absolute;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--c)}
+.arrow.r::before{left:-3px}.arrow.l::before{right:-3px}
+.arrow::after{content:"";position:absolute;top:-3.5px;width:8px;height:8px;border-top:1.5px solid var(--c);border-right:1.5px solid var(--c)}
+.arrow.r::after{right:0;transform:rotate(45deg)}.arrow.l::after{left:0;transform:rotate(-135deg)}
+.static .arrow,.static .lbl{animation:none}
+@keyframes r{from{clip-path:inset(-9px 100% -9px 0)}to{clip-path:inset(-9px 0 -9px 0)}}
+@keyframes lf{from{clip-path:inset(-9px 0 -9px 100%)}to{clip-path:inset(-9px 0 -9px 0)}}
+@keyframes fade{from{opacity:0}}
+.detail{margin-top:1.25rem;border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;background:var(--surface);display:none}
+.detail h3{margin:0 0 .6rem;font-size:.8rem;font-weight:500;color:var(--ink2);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.tag{font-size:.66rem;font-weight:600;padding:2px 8px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font:400 .82rem/1.65 'JetBrains Mono',monospace}
+.dock{position:fixed;left:50%;bottom:calc(1.25rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:.4rem .5rem .4rem .6rem;box-shadow:0 12px 32px -12px rgba(0,0,0,.25);width:min(560px,calc(100% - 2rem));z-index:5}
+.ib{width:34px;height:34px;flex:none;border-radius:50%;border:0;background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.ib:hover:not(:disabled){background:var(--soft)}.ib:disabled{opacity:.3;cursor:default}
+.ib.main{background:var(--ink);color:var(--bg)}.ib.main:hover:not(:disabled){background:var(--ink);opacity:.88}
+.ib svg{width:15px;height:15px;fill:currentColor}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);height:20px;flex:1;min-width:0}
+.cnt{font:500 .72rem 'JetBrains Mono',monospace;color:var(--ink2);padding:0 .6rem 0 .3rem;white-space:nowrap}
+@media(max-width:640px){.page{padding:1.5rem 1rem 9rem}.lbl span{display:none}.top{margin-bottom:2rem}}
+</style>
 </head>
 <body>
+<div class="page">
+ <div class="top"><div class="mark"><i></i>Protocol Flow</div><button class="ghost" onclick="theme()" title="Toggle theme">◐</button></div>
+ <h1>See how a request<br>travels the network.</h1>
+ <p class="lead">Pick an activity, run it, and follow each packet between client, DNS and server as a sequence.</p>
 
-    <header>
-        <div class="header-title">
-            <h1>TCP/IP Protocol Stack Visualizer</h1>
-            <p>Live 3D Topology & Packet Flow Monitor</p>
-        </div>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌓</button>
-    </header>
+ <div class="tabs">
+  <button class="tab on" data-t="browse" onclick="sw('browse')">Web browsing</button>
+  <button class="tab" data-t="mail" onclick="sw('mail')">Email</button>
+  <button class="tab" data-t="stream" onclick="sw('stream')">Streaming</button>
+ </div>
+ <div class="form on" id="f-browse"><div class="fld"><label>URL</label><input id="url" value="http://www.youtube.com"></div><button class="run" onclick="go('browse')">Run</button></div>
+ <div class="form" id="f-mail">
+  <div class="fld"><label>To</label><input id="to" value="instructor@university.edu"></div>
+  <div class="fld"><label>Subject</label><input id="subj" value="Protocol Assignment"></div>
+  <div class="fld"><label>Message</label><input id="body" value="Please find my submission attached."></div>
+  <button class="run" onclick="go('mail')">Run</button></div>
+ <div class="form" id="f-stream"><div class="fld"><label>Resolution</label><select id="q"><option value="1080p">1080p</option><option value="720p">720p</option></select></div><button class="run" onclick="go('stream')">Run</button></div>
 
-    <div class="main-workspace">
-        <!-- Left Panel: Controls -->
-        <div class="panel">
-            <h2>Command Center</h2>
-            
-            <div class="input-group" style="margin-bottom: 1.25rem;">
-                <label for="activity-selector">Protocol Sequence</label>
-                <select id="activity-selector" onchange="switchActivity()">
-                    <option value="browse">HTTP Web Browsing (DNS + TCP + HTTP)</option>
-                    <option value="mail">SMTP Mail Transfer (DNS + TCP + SMTP)</option>
-                    <option value="stream">HTTP Adaptive Streaming (DNS + TCP + HLS)</option>
-                </select>
-            </div>
+ <div class="phases">
+  <div class="ph" style="--c:var(--dns)">1 · Name lookup</div>
+  <div class="ph" style="--c:var(--tcp)">2 · Connection</div>
+  <div class="ph" style="--c:var(--app)">3 · Application data</div>
+ </div>
 
-            <div id="form-browse" class="activity-section active">
-                <div class="input-group">
-                    <label>Target URL</label>
-                    <input type="text" id="url" value="http://www.youtube.com">
-                </div>
-                <button class="action-btn" onclick="triggerAction('browse')">Execute Request</button>
-            </div>
+ <div class="diagram">
+  <div class="heads"><div>Client<small>your device</small></div><div>DNS<small>resolver</small></div><div>Server<small>remote host</small></div></div>
+  <div class="rows" id="rows">
+   <div class="ll" style="left:16.667%"></div><div class="ll" style="left:50%"></div><div class="ll" style="left:83.333%"></div>
+   <div class="empty" id="empty">Press Run to trace the exchange</div>
+  </div>
+ </div>
+ <div class="detail" id="detail"></div>
+</div>
 
-            <div id="form-mail" class="activity-section">
-                <div class="input-group">
-                    <label>Recipient Address</label>
-                    <input type="text" id="to_email" value="instructor@university.edu">
-                </div>
-                <div class="input-group">
-                    <label>Subject Line</label>
-                    <input type="text" id="subject" value="Protocol Assignment">
-                </div>
-                <div class="input-group">
-                    <label>Message Payload</label>
-                    <textarea id="body" rows="3">Please find my submission attached.</textarea>
-                </div>
-                <button class="action-btn" onclick="triggerAction('mail')">Transmit Data</button>
-            </div>
+<div class="dock" id="dock">
+ <button class="ib" id="bk" onclick="back()" title="Previous"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
+ <button class="ib main" id="pp" onclick="pp()" title="Play / pause"></button>
+ <button class="ib" id="fw" onclick="fwd()" title="Next"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2l8 6-8 6z"/></svg></button>
+ <input type="range" id="sc" min="0" max="0" value="0" oninput="scrub(+this.value)">
+ <span class="cnt" id="cnt">0/0</span>
+ <button class="ib" onclick="go(cur)" title="Replay"><svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 6 6h-2a4 4 0 1 1-1.2-2.8L9 7h5V2l-1.8 1.8A6 6 0 0 0 8 2z"/></svg></button>
+</div>
 
-            <div id="form-stream" class="activity-section">
-                <div class="input-group">
-                    <label>Stream Resolution</label>
-                    <select id="quality">
-                        <option value="1080p">1080p High Definition</option>
-                        <option value="720p">720p Standard</option>
-                    </select>
-                </div>
-                <button class="action-btn" onclick="triggerAction('stream')">Initialize Stream</button>
-            </div>
-        </div>
+<script>
+const $=id=>document.getElementById(id);
+const PLAY='<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>',PAUSE='<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>';
+const X={Client:16.667,DNS:50,Server:83.333};
+function theme(){const r=document.documentElement;const dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=dark?'light':'dark'}
 
-        <!-- Right Panel: 3D Visualizer & Logs -->
-        <div class="panel">
-            <h2>Live Topology & Packet Inspector</h2>
-            <div class="right-panel-grid">
-                <!-- Three.js 3D Canvas Container -->
-                <div id="canvas-container">
-                    <canvas id="topology-canvas"></canvas>
-                    <div class="canvas-overlay">3D Node Topology (Client, DNS, Server)</div>
-                </div>
+// simulated backend (replaces /api/*)
+const C='Client',D='DNS',S='Server';
+const st=(from,to,proto,msg)=>({from,to,proto,msg});
+const tcp=()=>[st(C,S,'TCP','SYN  seq=1000'),st(S,C,'TCP','SYN-ACK  seq=5000 ack=1001'),st(C,S,'TCP','ACK  seq=1001 ack=5001\n-- connection established --')];
+const dns=h=>[st(C,D,'DNS','Query: A record for '+h+'?'),st(D,C,'DNS','Answer: '+h+' -> 142.250.190.78  (TTL 300)')];
+function build(t){
+ if(t==='browse'){const h=($('url').value||'').replace(/^https?:\/\//,'').split('/')[0]||'example.com';
+  return[...dns(h),...tcp(),st(C,S,'HTTP','GET / HTTP/1.1\nHost: '+h+'\nUser-Agent: ProtocolFlow/1.0\nAccept: text/html'),
+  st(S,C,'HTTP','HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 48211\n\n<!DOCTYPE html>...'),st(C,S,'TCP','FIN-ACK\n-- closing connection --')]}
+ if(t==='mail'){const to=$('to').value,sub=$('subj').value,b=$('body').value,dom=to.split('@')[1]||'mail.example.com';
+  return[...dns('mx.'+dom),...tcp(),st(S,C,'SMTP','220 mx.'+dom+' ESMTP ready'),st(C,S,'SMTP','HELO client.local'),st(S,C,'SMTP','250 Hello client.local'),
+  st(C,S,'SMTP','MAIL FROM:<student@client.local>'),st(S,C,'SMTP','250 OK'),st(C,S,'SMTP','RCPT TO:<'+to+'>'),st(S,C,'SMTP','250 OK'),
+  st(C,S,'SMTP','DATA'),st(S,C,'SMTP','354 End data with <CR><LF>.<CR><LF>'),st(C,S,'SMTP','Subject: '+sub+'\n\n'+b+'\n.'),st(S,C,'SMTP','250 Message queued'),
+  st(C,S,'SMTP','QUIT'),st(S,C,'SMTP','221 Bye')]}
+ const q=$('q').value,bw=q==='1080p'?'5000000':'2500000';
+ return[...dns('stream.video-cdn.com'),...tcp(),st(C,S,'HLS','GET /master.m3u8 HTTP/1.1'),
+  st(S,C,'HLS','200 OK\n#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH='+bw+',RESOLUTION='+(q==='1080p'?'1920x1080':'1280x720')+'\n'+q+'/index.m3u8'),
+  st(C,S,'HLS','GET /'+q+'/seg001.ts HTTP/1.1'),st(S,C,'HLS','206 Partial Content  [segment 1, 4s]'),
+  st(C,S,'HLS','GET /'+q+'/seg002.ts HTTP/1.1'),st(S,C,'HLS','206 Partial Content  [segment 2, 4s]')]}
 
-                <!-- Logs & Controls -->
-                <div style="display: flex; flex-direction: column; overflow: hidden;">
-                    <div class="controls-container" id="playback-controls">
-                        <button class="control-btn" onclick="replaySequence()">⏪ Replay</button>
-                        <button class="control-btn" id="btn-back" onclick="stepBackward()">⏮ Back</button>
-                        <button class="control-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
-                        <button class="control-btn" id="btn-fwd" onclick="stepForward()">⏭ Forward</button>
-                    </div>
-
-                    <div id="log-container">
-                        <div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--text-secondary); font-style:italic; font-size:0.85rem; text-align:center;">
-                            Awaiting operation: Select activity to trace routing...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const $ = id => document.getElementById(id);
-        
-        function toggleTheme() {
-            const isDark = document.documentElement.hasAttribute('data-theme');
-            if (isDark) document.documentElement.removeAttribute('data-theme');
-            else document.documentElement.setAttribute('data-theme', 'light');
-        }
-
-        // --- Three.js 3D Topology Setup ---
-        let scene, camera, renderer, nodes = {}, activePacket = null, packetProgress = 0;
-        let packetStart = new THREE.Vector3(), packetEnd = new THREE.Vector3();
-
-        function init3D() {
-            const container = $('canvas-container');
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.set(0, 3, 9);
-            camera.lookAt(0, 0, 0);
-
-            renderer = new THREE.WebGLRenderer({ canvas: $('topology-canvas'), antialias: true, alpha: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            // Ambient Light
-            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambient);
-
-            const pointLight = new THREE.PointLight(0x3b82f6, 2, 50);
-            pointLight.position.set(0, 5, 5);
-            scene.add(pointLight);
-
-            // Create Network Nodes
-            createNode('CLIENT', -3.5, 0, 0, 0x3b82f6, 'Client');
-            createNode('DNS', 0, 1.8, 0, 0x8b5cf6, 'DNS Server');
-            createNode('SERVER', 3.5, 0, 0, 0x10b981, 'Remote Server');
-
-            // Connect lines
-            createLine('CLIENT', 'DNS');
-            createLine('CLIENT', 'SERVER');
-
-            // Packet Sphere
-            const pGeo = new THREE.SphereGeometry(0.15, 16, 16);
-            const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            activePacket = new THREE.Mesh(pGeo, pMat);
-            activePacket.visible = false;
-            scene.add(activePacket);
-
-            window.addEventListener('resize', () => {
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            });
-
-            animate3D();
-        }
-
-        function createNode(id, x, y, z, color, label) {
-            const geometry = new THREE.SphereGeometry(0.4, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.5, emissive: color, emissiveIntensity: 0.2 });
-            const sphere = new THREE.Mesh(geometry, material);
-            sphere.position.set(x, y, z);
-            scene.add(sphere);
-            nodes[id] = { mesh: sphere, pos: sphere.position, originalColor: color };
-        }
-
-        function createLine(id1, id2) {
-            const material = new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.5 });
-            const points = [nodes[id1].pos, nodes[id2].pos];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-        }
-
-        function animate3D() {
-            requestAnimationFrame(animate3D);
-
-            // Animate packet flight if active
-            if (activePacket && activePacket.visible) {
-                packetProgress += 0.03;
-                if (packetProgress >= 1) {
-                    activePacket.visible = false;
-                } else {
-                    activePacket.position.lerpVectors(packetStart, packetEnd, packetProgress);
-                }
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        function triggerPacketAnimation(senderStr, receiverStr) {
-            let sKey = 'CLIENT', rKey = 'SERVER';
-            if (senderStr.includes('DNS') || receiverStr.includes('DNS')) {
-                sKey = 'CLIENT'; rKey = 'DNS';
-            } else {
-                sKey = 'CLIENT'; rKey = 'SERVER';
-            }
-
-            if (nodes[sKey] && nodes[rKey]) {
-                packetStart.copy(nodes[sKey].pos);
-                packetEnd.copy(nodes[rKey].pos);
-                packetProgress = 0;
-                activePacket.visible = true;
-
-                // Pulse node effect
-                pulseNode(nodes[sKey]);
-                setTimeout(() => pulseNode(nodes[rKey]), 300);
-            }
-        }
-
-        function pulseNode(nodeObj) {
-            nodeObj.mesh.material.emissiveIntensity = 0.8;
-            setTimeout(() => nodeObj.mesh.material.emissiveIntensity = 0.2, 300);
-        }
-
-        window.addEventListener('DOMContentLoaded', init3D);
-
-        // --- App Sequence Logic ---
-        let seq = [], stepIdx = 0, timer = null, playing = false;
-
-        function switchActivity() {
-            document.querySelectorAll('.activity-section').forEach(el => el.classList.remove('active'));
-            $(`form-${$('activity-selector').value}`).classList.add('active');
-        }
-
-        async function triggerAction(type) {
-            $('log-container').innerHTML = '';$('playback-controls').style.display = 'none'; 
-            clearTimeout(timer);
-            
-            let payload = {};
-            if (type === 'browse') payload = { url: $('url').value };
-            if (type === 'mail') payload = { to_email: $('to_email').value, subject: $('subject').value, body:$('body').value };
-            if (type === 'stream') payload = { quality: $('quality').value };
-
-            try {
-                let res = await fetch(`/api/${type}`, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(payload) 
-                });
-                let data = await res.json();
-                startSeq(data.sequence);
-            } catch (e) {
-                $('log-container').innerHTML = `<div style="color:#ef4444;padding:1rem;font-size:0.85rem;">Connection error with backend.</div>`;
-            }
-        }
-
-        function updateBtns() {
-            if ($('btn-back'))$('btn-back').disabled = (stepIdx <= 0);
-            if ($('btn-fwd'))$('btn-fwd').disabled = (stepIdx >= seq.length);
-            if ($('play-pause-btn'))$('play-pause-btn').innerHTML = playing ? '⏸ Pause' : '▶️ Play';
-        }
-
-        function startSeq(data) {
-            clearTimeout(timer); seq = data; stepIdx = 0; playing = true;
-            $('log-container').innerHTML = '';$('playback-controls').style.display = 'flex';
-            updateBtns(); playNext();
-        }
-
-        function playNext() {
-            if (!playing) return;
-            if (stepIdx >= seq.length) { playing = false; updateBtns(); return; }
-            render(seq[stepIdx]); stepIdx++; updateBtns();
-            timer = setTimeout(playNext, 1200);
-        }
-
-        function render(step) {
-            let div = document.createElement('div');
-            div.className = `log-entry log-${step.type}`;
-            
-            let badgeClass = 'badge-http';
-            let proto = step.protocol.toUpperCase();
-            if (proto.includes('DNS')) badgeClass = 'badge-dns';
-            else if (proto.includes('TCP')) badgeClass = 'badge-tcp';
-            else if (proto.includes('SMTP')) badgeClass = 'badge-smtp';
-
-            let msg = step.msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            
-            div.innerHTML = `
-                <div class="meta">
-                    <span>${step.sender} ➔ ${step.receiver}</span>
-                    <span class="protocol-badge ${badgeClass}">${step.protocol}</span>
-                </div>
-                <pre>${msg}</pre>
-            `;
-            $('log-container').appendChild(div);
-            $('log-container').scrollTop =$('log-container').scrollHeight;
-
-            // Trigger 3D packet animation
-            triggerPacketAnimation(step.sender, step.receiver);
-        }
-
-        function togglePlayPause() {
-            if (playing) { playing = false; clearTimeout(timer); } 
-            else { if (stepIdx >= seq.length) return startSeq(seq); playing = true; playNext(); }
-            updateBtns();
-        }
-
-        function stepForward() {
-            clearTimeout(timer); playing = false;
-            if (stepIdx < seq.length) { render(seq[stepIdx]); stepIdx++; }
-            updateBtns();
-        }
-
-        function stepBackward() {
-            clearTimeout(timer); playing = false;
-            if (stepIdx > 0) {
-                stepIdx--; $('log-container').innerHTML = '';
-                for (let i = 0; i < stepIdx; i++) render(seq[i]);
-            }
-            updateBtns();
-        }
-
-        function replaySequence() { clearTimeout(timer); startSeq(seq); }
-    </script>
+// player
+let seq=[],idx=0,sel=-1,timer=null,playing=false,cur='browse';
+const phase=p=>p==='DNS'?0:p==='TCP'?1:2, pcol=p=>['--dns','--tcp','--app'][phase(p)];
+function sw(t){cur=t;document.querySelectorAll('.form').forEach(e=>e.classList.toggle('on',e.id==='f-'+t));document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t))}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function rowEl(s,i,anim){
+ const a=X[s.from],b=X[s.to],right=b>a,el=document.createElement('div');
+ el.className='row'+(anim?'':' static');el.dataset.i=i;el.style.setProperty('--c','var('+pcol(s.proto)+')');
+ let sum=s.msg.split('\n')[0];if(sum.length>30)sum=sum.slice(0,29)+'…';
+ el.innerHTML='<div class="arrow '+(right?'r':'l')+'" style="left:'+Math.min(a,b)+'%;width:'+Math.abs(b-a)+'%"></div><div class="lbl" style="left:'+(a+b)/2+'%"><i>'+String(i+1).padStart(2,'0')+'</i><b>'+s.proto+'</b><span>'+esc(sum)+'</span></div>';
+ el.onclick=()=>select(i);return el}
+function select(i){sel=i;document.querySelectorAll('.row').forEach(r=>r.classList.toggle('sel',+r.dataset.i===i));
+ const d=$('detail');if(i<0||!seq[i]){d.style.display='none';return}
+ const s=seq[i];d.style.display='block';d.style.setProperty('--c','var('+pcol(s.proto)+')');
+ d.innerHTML='<h3><span>Step '+(i+1)+'</span><span class="tag">'+s.proto+'</span><span>'+s.from+' → '+s.to+'</span></h3><pre>'+esc(s.msg)+'</pre>'}
+function ui(){
+ const ap=idx?phase(seq[idx-1].proto):-1;
+ document.querySelectorAll('.ph').forEach((e,k)=>{e.classList.toggle('done',k<ap);e.classList.toggle('act',k===ap)});
+ $('cnt').textContent=idx+'/'+seq.length;$('sc').max=seq.length;$('sc').value=idx;
+ $('pp').innerHTML=playing?PAUSE:PLAY;$('bk').disabled=idx<=0;$('fw').disabled=idx>=seq.length;
+ $('dock').style.display=seq.length?'flex':'none'}
+function add(anim){const el=rowEl(seq[idx],idx,anim);$('rows').appendChild(el);idx++;select(idx-1);if(anim)el.scrollIntoView({block:'center',behavior:'smooth'})}
+function clearRows(){document.querySelectorAll('.row').forEach(r=>r.remove());idx=0;sel=-1}
+function go(t){clearTimeout(timer);cur=t;seq=build(t);clearRows();$('empty').style.display='none';playing=true;ui();next()}
+function next(){if(!playing)return;if(idx>=seq.length){playing=false;ui();return}add(true);ui();timer=setTimeout(next,1300)}
+function pause(){playing=false;clearTimeout(timer)}
+function pp(){if(playing){pause()}else{if(idx>=seq.length)return go(cur);playing=true;next()}ui()}
+function fwd(){pause();if(idx<seq.length)add(true);ui()}
+function scrub(n){pause();clearRows();for(let i=0;i<n;i++)add(false);if(!n)select(-1);ui()}
+function back(){scrub(Math.max(0,idx-1))}
+</script>
 </body>
 </html>
