@@ -10,7 +10,6 @@ class BrowseReq(BaseModel): url: str
 class MailReq(BaseModel): to_email: str; subject: str; body: str
 class StreamReq(BaseModel): quality: str
 
-# Helper to keep sequence dictionaries DRY and readable
 def step(direction, sender, receiver, protocol, text):
     return {"type": direction, "sender": sender, "receiver": receiver, "protocol": protocol, "msg": text}
 
@@ -31,11 +30,19 @@ def browse(data: BrowseReq):
     try:
         ip = socket.gethostbyname(host)
     except:
-        ip = "192.0.2.1" # Fallback for invalid domains
+        ip = "192.0.2.1"
 
     return {"sequence": [
+        # Network / DNS Layer
         step("out", "CLIENT", "DNS SERVER", "DNS", f"Query A Record: {host}"),
-        step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: {ip}"),
+        step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: {ip} (Resolved via socket)"),
+        
+        # Transport Layer (TCP 3-Way Handshake)
+        step("out", "CLIENT", "WEB SERVER", "TCP", "SYN Segment [Port 80/443] (Seq=0, Win=64240)"),
+        step("in", "WEB SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1, Win=29200)"),
+        step("out", "CLIENT", "WEB SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
+        
+        # Application Layer (HTTP)
         step("out", "CLIENT", "WEB SERVER", "HTTP", f"GET {path} HTTP/1.1\nHost: {host}\nAccept: text/html"),
         step("in", "WEB SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: text/html\n\n[HTML Document Payload]")
     ]}
@@ -46,11 +53,19 @@ def mail(data: MailReq):
     domain = parts[1] if len(parts) > 1 else "local.edu"
     
     return {"sequence": [
+        # DNS
         step("out", "CLIENT", "DNS SERVER", "DNS", f"Query MX Record: {domain}"),
         step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: mail.{domain}"),
+        
+        # Transport Layer (TCP for SMTP)
+        step("out", "CLIENT", "SMTP SERVER", "TCP", "SYN Segment [Port 25/587] (Seq=0)"),
+        step("in", "SMTP SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1)"),
+        step("out", "CLIENT", "SMTP SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
+        
+        # Application Layer (SMTP Conversation)
         step("out", "CLIENT", "SMTP SERVER", "SMTP", "EHLO client.local"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", f"250-mail.{domain} Hello\n250-8BITMIME\n250 OK"),
-        step("out", "CLIENT", "SMTP SERVER", "SMTP", "MAIL FROM: <Bishal01@gmail.com>"),
+        step("out", "CLIENT", "SMTP SERVER", "SMTP", "MAIL FROM: <student@university.edu>"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.0 OK"),
         step("out", "CLIENT", "SMTP SERVER", "SMTP", f"RCPT TO: <{data.to_email}>"),
         step("in", "SMTP SERVER", "CLIENT", "SMTP", "250 2.1.5 OK"),
@@ -71,12 +86,20 @@ def stream(data: StreamReq):
         ip = "198.51.100.14"
 
     return {"sequence": [
+        # DNS
         step("out", "CLIENT", "DNS SERVER", "DNS", f"Query A Record: {cdn}"),
         step("in", "DNS SERVER", "CLIENT", "DNS", f"Response: {ip}"),
+        
+        # Transport Layer (TCP for HLS Streaming)
+        step("out", "CLIENT", "VIDEO SERVER", "TCP", "SYN Segment [Port 443] (Seq=0)"),
+        step("in", "VIDEO SERVER", "CLIENT", "TCP", "SYN-ACK Segment (Seq=0, Ack=1)"),
+        step("out", "CLIENT", "VIDEO SERVER", "TCP", "ACK Segment (Ack=1) - Connection Established"),
+        
+        # Application Layer (HLS Manifest & Segments)
         step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /master_manifest.m3u8 HTTP/1.1\nHost: {cdn}"),
         step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]"),
         step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /segments/{data.quality}/seg_001.ts HTTP/1.1\nHost: {cdn}"),
-        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Data]"),
+        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment 1]"),
         step("out", "CLIENT", "VIDEO SERVER", "HTTP", f"GET /segments/{data.quality}/seg_002.ts HTTP/1.1\nHost: {cdn}"),
-        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Data]")
+        step("in", "VIDEO SERVER", "CLIENT", "HTTP", "HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment 2]")
     ]}
