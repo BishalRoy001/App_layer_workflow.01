@@ -1,237 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Protocol Flow</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---bg:#fafaf9;--surface:#fff;--ink:#18181b;--ink2:#71717a;--line:#e7e5e4;--soft:#f4f4f2;--dns:#7c3aed;--tcp:#d97706;--app:#2563eb}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--surface:#151518;--ink:#f4f4f5;--ink2:#8b8b95;--line:#26262b;--soft:#1b1b1f;--dns:#a78bfa;--tcp:#fbbf24;--app:#60a5fa}}
-:root[data-theme="dark"]{--bg:#0c0c0e;--surface:#151518;--ink:#f4f4f5;--ink2:#8b8b95;--line:#26262b;--soft:#1b1b1f;--dns:#a78bfa;--tcp:#fbbf24;--app:#60a5fa}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:400 15px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.page{max-width:1000px;margin:0 auto;padding:2.25rem 1.5rem 9rem}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3rem}
-.mark{font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:.6rem}
-.mark i{width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:14px 0 0 -3px var(--ink2),28px 0 0 -4px var(--line);margin-right:1.6rem}
-.mode{font-size:.72rem;color:var(--ink2);display:flex;align-items:center;gap:.4rem}.mode:empty{display:none}.mode::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink2)}.mode.live::before{background:#16a34a}
-.ghost{background:none;border:1px solid var(--line);color:var(--ink2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:.9rem}
-.ghost:hover{color:var(--ink);border-color:var(--ink2)}
-h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 .6rem}
-.lead{color:var(--ink2);margin:0 0 2.25rem;max-width:34rem}
-.tabs{display:flex;gap:1.5rem;border-bottom:1px solid var(--line);margin-bottom:1.25rem}
-.tab{background:none;border:0;padding:.6rem 0;font:inherit;font-weight:500;color:var(--ink2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab.on{color:var(--ink);border-color:var(--ink)}
-.form{display:none;gap:.75rem;align-items:flex-end;flex-wrap:wrap}.form.on{display:flex}
-.fld{display:flex;flex-direction:column;gap:.3rem;flex:1;min-width:160px}
-.fld label{font-size:.72rem;color:var(--ink2);font-weight:500}
-input,select{font:inherit;font-size:.9rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.62rem .8rem;outline:none;width:100%}
-input:focus,select:focus{border-color:var(--ink2)}
-.run{font:inherit;font-weight:500;font-size:.9rem;background:var(--ink);color:var(--bg);border:0;border-radius:10px;padding:.66rem 1.4rem;cursor:pointer}
-.run:hover{opacity:.88}
-.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + .5rem);z-index:4;height:clamp(210px,34vh,290px);margin-top:2rem;border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden;box-shadow:0 18px 40px -28px rgba(0,0,0,.35)}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
-.nl{position:absolute;transform:translateX(-50%);text-align:center;font-size:.76rem;font-weight:600;pointer-events:none;line-height:1.25}
-.nl small{display:block;font-weight:400;font-size:.66rem;color:var(--ink2)}
-.cap{position:absolute;left:1rem;top:.85rem;font:500 .72rem 'JetBrains Mono',monospace;color:var(--ink2);display:flex;gap:.5rem;align-items:center}
-.cap b{color:var(--c,var(--ink));font-weight:600}
-.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:2.5rem 0 1.25rem}
-.ph{font-size:.72rem;font-weight:500;color:var(--ink2)}
-.ph::before{content:"";display:block;height:2px;background:var(--line);border-radius:2px;margin-bottom:.45rem;transition:background .3s}
-.ph.done::before{background:var(--c)}.ph.act::before{background:var(--c);height:3px}.ph.act{color:var(--ink)}
-.diagram{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0 0 .5rem}
-.heads{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:1.1rem 0;border-bottom:1px solid var(--line);background:var(--surface);border-radius:16px 16px 0 0}
-.heads div{font-size:.8rem;font-weight:600}.heads small{display:block;color:var(--ink2);font-weight:400;font-size:.7rem}
-.rows{position:relative;min-height:220px}
-.ll{position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(var(--line) 0 4px,transparent 4px 8px)}
-.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);font-size:.85rem}
-.row{position:relative;height:66px;cursor:pointer;border-radius:8px;margin:0 .5rem;--c:var(--app)}
-.row:hover,.row.sel{background:var(--soft)}
-.lbl{position:absolute;top:11px;transform:translateX(-50%);white-space:nowrap;font-size:.74rem;display:flex;gap:.45rem;align-items:center;animation:fade .4s .25s both}
-.lbl i{font-style:normal;font-family:'JetBrains Mono',monospace;color:var(--ink2);font-size:.68rem}
-.lbl b{color:var(--c);font-weight:600}
-.lbl span{color:var(--ink2);font-family:'JetBrains Mono',monospace;font-size:.7rem}
-.arrow{position:absolute;top:42px;height:1.5px;background:var(--c);animation:r .5s cubic-bezier(.3,.7,.2,1) both}
-.arrow.l{animation-name:lf}
-.arrow::before{content:"";position:absolute;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--c)}
-.arrow.r::before{left:-3px}.arrow.l::before{right:-3px}
-.arrow::after{content:"";position:absolute;top:-3.5px;width:8px;height:8px;border-top:1.5px solid var(--c);border-right:1.5px solid var(--c)}
-.arrow.r::after{right:0;transform:rotate(45deg)}.arrow.l::after{left:0;transform:rotate(-135deg)}
-.static .arrow,.static .lbl{animation:none}
-@keyframes r{from{clip-path:inset(-9px 100% -9px 0)}to{clip-path:inset(-9px 0 -9px 0)}}
-@keyframes lf{from{clip-path:inset(-9px 0 -9px 100%)}to{clip-path:inset(-9px 0 -9px 0)}}
-@keyframes fade{from{opacity:0}}
-.detail{margin-top:1.25rem;border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;background:var(--surface);display:none}
-.detail h3{margin:0 0 .6rem;font-size:.8rem;font-weight:500;color:var(--ink2);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-.tag{font-size:.66rem;font-weight:600;padding:2px 8px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
-pre{margin:0;white-space:pre-wrap;word-break:break-word;font:400 .82rem/1.65 'JetBrains Mono',monospace}
-.dock{position:fixed;left:50%;bottom:calc(1.25rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:.4rem .5rem .4rem .6rem;box-shadow:0 12px 32px -12px rgba(0,0,0,.25);width:min(560px,calc(100% - 2rem));z-index:5}
-.ib{width:34px;height:34px;flex:none;border-radius:50%;border:0;background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center}
-.ib:hover:not(:disabled){background:var(--soft)}.ib:disabled{opacity:.3;cursor:default}
-.ib.main{background:var(--ink);color:var(--bg)}.ib.main:hover:not(:disabled){background:var(--ink);opacity:.88}
-.ib svg{width:15px;height:15px;fill:currentColor}
-input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);height:20px;flex:1;min-width:0}
-.cnt{font:500 .72rem 'JetBrains Mono',monospace;color:var(--ink2);padding:0 .6rem 0 .3rem;white-space:nowrap}
-@media(max-width:640px){.page{padding:1.5rem 1rem 9rem}.lbl span{display:none}.top{margin-bottom:2rem}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Layer Visualizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            /* Light Theme Variables */
+            --bg-body: #f4f5f7;
+            --bg-surface: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --border-light: #e5e7eb;
+            --accent-primary: #2563eb;
+            --accent-hover: #1d4ed8;
+            --log-out: #f0fdf4;
+            --log-in: #eff6ff;
+            --log-border-out: #22c55e;
+            --log-border-in: #3b82f6;
+            --star-color: rgba(37, 99, 235, 0.4);
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme Variables */
+            --bg-body: #0f172a;
+            --bg-surface: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-light: #334155;
+            --accent-primary: #3b82f6;
+            --accent-hover: #60a5fa;
+            --log-out: rgba(34, 197, 94, 0.1);
+            --log-in: rgba(59, 130, 246, 0.1);
+            --log-border-out: #22c55e;
+            --log-border-in: #3b82f6;
+            --star-color: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Star Background Canvas */
+        #star-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+            position: relative;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-light);
+        }
+
+        h1 { margin: 0; font-weight: 600; font-size: 1.5rem; letter-spacing: -0.02em; }
+        .subtitle { margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary); font-weight: 400; }
+        
+        .main-workspace {
+            display: flex; 
+            gap: 2rem; 
+            padding: 2rem; 
+            flex: 1; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            width: 100%; 
+            box-sizing: border-box;
+            height: calc(100vh - 100px); /* Fill remaining space on desktop */
+        }
+
+        .panel {
+            background: var(--bg-surface); 
+            border: 1px solid var(--border-light);
+            border-radius: 8px; 
+            padding: 2rem; 
+            display: flex; 
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .left-panel { 
+            flex: 1 1 350px; 
+            max-width: 450px; 
+            height: fit-content;
+        }
+
+        .right-panel { 
+            flex: 2 1 500px; 
+            background: rgba(var(--bg-surface), 0.85); 
+            backdrop-filter: blur(4px); 
+            overflow: hidden; /* Constrain inner scrolling on desktop */
+        }
+
+        h2 { 
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--text-secondary); border-bottom: 1px solid var(--border-light); 
+            padding-bottom: 0.75rem; margin-top: 0; margin-bottom: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .activity-section { display: none; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}
+        .activity-section.active { display: flex; }
+        
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+        .input-group { margin-bottom: 0.5rem; }
+
+        select, input, textarea {
+            width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--border-light);
+            border-radius: 6px; font-family: inherit; font-size: 0.875rem; box-sizing: border-box;
+            background-color: var(--bg-body); color: var(--text-primary); transition: all 0.2s ease;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none; border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button.action-btn {
+            background: var(--accent-primary); color: white; border: none; font-weight: 500;
+            font-size: 0.875rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; 
+            width: 100%; margin-top: 0.5rem; transition: background-color 0.2s ease;
+        }
+        button.action-btn:hover { background: var(--accent-hover); }
+
+        #log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px; /* Offset for scrollbar */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .log-entry {
+            padding: 1.25rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--border-light);
+            opacity: 0; transform: translateY(10px); animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            flex-shrink: 0;
+        }
+        .log-out { background: var(--log-out); border-left: 4px solid var(--log-border-out); }
+        .log-in { background: var(--log-in); border-left: 4px solid var(--log-border-in); }
+        
+        .meta { 
+            display: flex; align-items: center; justify-content: space-between; font-weight: 600; 
+            margin-bottom: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;
+        }
+        .protocol-badge {
+            background-color: var(--bg-body); padding: 0.25rem 0.5rem; border-radius: 4px;
+            border: 1px solid var(--border-light); font-weight: 600; color: var(--text-primary);
+        }
+        pre { 
+            margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.875rem; line-height: 1.6; color: var(--text-primary);
+        }
+        
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 4px; }
+
+        /* Responsive Layout Updates */
+        @media (max-width: 900px) {
+            body {
+                height: auto;
+            }
+            .main-workspace {
+                flex-direction: column;
+                height: auto;
+                padding: 1rem;
+                gap: 1.5rem;
+            }
+            .left-panel {
+                max-width: 100%;
+                flex: none;
+            }
+            .right-panel {
+                flex: none;
+                height: 500px; /* Fixed height for the log monitor on mobile */
+            }
+            header {
+                padding: 1rem;
+            }
+            h1 { font-size: 1.25rem; }
+        }
+    </style>
 </head>
 <body>
-<div class="page">
- <div class="top"><div class="mark"><i></i>Protocol Flow</div><div style="display:flex;gap:.7rem;align-items:center"><span class="mode" id="mode"></span><button class="ghost" onclick="theme()" title="Toggle theme">◐</button></div></div>
- <h1>See how a request<br>travels the network.</h1>
- <p class="lead">Pick an activity, run it, and follow each packet between client, DNS and server as a sequence.</p>
 
- <div class="tabs">
-  <button class="tab on" data-t="browse" onclick="sw('browse')">Web browsing</button>
-  <button class="tab" data-t="mail" onclick="sw('mail')">Email</button>
-  <button class="tab" data-t="stream" onclick="sw('stream')">Streaming</button>
- </div>
- <div class="form on" id="f-browse"><div class="fld"><label>URL</label><input id="url" value="http://www.youtube.com"></div><button class="run" onclick="go('browse')">Run</button></div>
- <div class="form" id="f-mail">
-  <div class="fld"><label>To</label><input id="to" value="instructor@university.edu"></div>
-  <div class="fld"><label>Subject</label><input id="subj" value="Protocol Assignment"></div>
-  <div class="fld"><label>Message</label><input id="body" value="Please find my submission attached."></div>
-  <button class="run" onclick="go('mail')">Run</button></div>
- <div class="form" id="f-stream"><div class="fld"><label>Resolution</label><select id="q"><option value="1080p">1080p</option><option value="720p">720p</option></select></div><button class="run" onclick="go('stream')">Run</button></div>
+    <canvas id="star-canvas"></canvas>
 
- <div class="stage" id="stage"><canvas id="cv"></canvas>
- <div class="cap" id="cap">Awaiting a request</div>
- <div class="nl" id="nl0"><span>Client</span><small>your device</small></div>
- <div class="nl" id="nl1"><span>DNS server</span><small>resolver</small></div>
- <div class="nl" id="nl2"><span>Remote server</span><small>remote host</small></div>
-</div>
- <div class="phases">
-  <div class="ph" style="--c:var(--dns)">1 · Name lookup</div>
-  <div class="ph" style="--c:var(--tcp)">2 · Connection</div>
-  <div class="ph" style="--c:var(--app)">3 · Application data</div>
- </div>
+    <header>
+        <h1>Application Layer Dashboard</h1>
+        <p class="subtitle">Live Protocol Synchronization Monitor</p>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle Dark/Light Mode">🌓</button>
+    </header>
+    
+    <div class="main-workspace">
+        <div class="panel left-panel">
+            <h2>Command Center</h2>
+            
+            <div class="input-group">
+                <label for="activity-selector">Select Operation</label>
+                <select id="activity-selector" onchange="switchActivity()">
+                    <option value="browse">HTTP Web Browsing</option>
+                    <option value="mail">SMTP Mail Transfer</option>
+                    <option value="stream">HTTP Adaptive Streaming</option>
+                </select>
+            </div>
 
- <div class="diagram">
-  <div class="heads"><div>Client<small>your device</small></div><div>DNS server<small>resolver</small></div><div id="h3">Remote server<small>remote host</small></div></div>
-  <div class="rows" id="rows">
-   <div class="ll" style="left:16.667%"></div><div class="ll" style="left:50%"></div><div class="ll" style="left:83.333%"></div>
-   <div class="empty" id="empty">Press Run to trace the exchange</div>
-  </div>
- </div>
- <div class="detail" id="detail"></div>
-</div>
+            <div id="form-browse" class="activity-section active">
+                <div class="input-group">
+                    <label for="url">Target URL</label>
+                    <input type="text" id="url" value="http://www.youtube.com" placeholder="e.g., http://www.example.com">
+                </div>
+                <button class="action-btn" onclick="triggerAction('browse')">Execute Request</button>
+            </div>
 
-<div class="dock" id="dock">
- <button class="ib" id="bk" onclick="back()" title="Previous"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
- <button class="ib main" id="pp" onclick="pp()" title="Play / pause"></button>
- <button class="ib" id="fw" onclick="fwd()" title="Next"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2l8 6-8 6z"/></svg></button>
- <input type="range" id="sc" min="0" max="0" value="0" oninput="scrub(+this.value)">
- <span class="cnt" id="cnt">0/0</span>
- <button class="ib" onclick="go(cur)" title="Replay"><svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 6 6h-2a4 4 0 1 1-1.2-2.8L9 7h5V2l-1.8 1.8A6 6 0 0 0 8 2z"/></svg></button>
-</div>
+            <div id="form-mail" class="activity-section">
+                <div class="input-group">
+                    <label for="to_email">Recipient Address</label>
+                    <input type="text" id="to_email" value="instructor@university.edu">
+                </div>
+                <div class="input-group">
+                    <label for="subject">Subject Line</label>
+                    <input type="text" id="subject" value="Protocol Assignment">
+                </div>
+                <div class="input-group">
+                    <label for="body">Message Payload</label>
+                    <textarea id="body" rows="4">Please find my submission attached.</textarea>
+                </div>
+                <button class="action-btn" onclick="triggerAction('mail')">Transmit Data</button>
+            </div>
 
-<script>
-const $=id=>document.getElementById(id);
-const PLAY='<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>',PAUSE='<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>';
-const lane=n=>n==='CLIENT'?16.667:n==='DNS SERVER'?50:83.333;
-const cap=n=>n.charAt(0)+n.slice(1).toLowerCase();
-function theme(){const r=document.documentElement;const dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=dark?'light':'dark';setTimeout(()=>{if(typeof applyTheme==='function')applyTheme()},0)}
+            <div id="form-stream" class="activity-section">
+                <div class="input-group">
+                    <label for="quality">Stream Resolution</label>
+                    <select id="quality">
+                        <option value="1080p">1080p High Definition</option>
+                        <option value="720p">720p Standard</option>
+                    </select>
+                </div>
+                <button class="action-btn" onclick="triggerAction('stream')">Initialize Stream</button>
+            </div>
+        </div>
 
-// backend contract: POST /api/{browse|mail|stream} -> {sequence:[{type,sender,receiver,protocol,msg}]}
-const payload=t=>t==='browse'?{url:$('url').value}:t==='mail'?{to_email:$('to').value,subject:$('subj').value,body:$('body').value}:{quality:$('q').value};
-const norm=x=>({type:x.type,from:x.sender,to:x.receiver,proto:String(x.protocol).toUpperCase(),msg:x.msg});
-// offline fallback: mirrors main.py so the page still demos without the server
-function mock(t,d){
- const K='CLIENT',N='DNS SERVER',o=(s,r,p,m)=>({type:'out',sender:s,receiver:r,protocol:p,msg:m}),i=(s,r,p,m)=>({type:'in',sender:s,receiver:r,protocol:p,msg:m});
- const tcp=(v,a,b)=>[o(K,v,'TCP',a),i(v,K,'TCP',b),o(K,v,'TCP','ACK Segment (Ack=1) - Connection Established')];
- if(t==='browse'){let u=d.url.trim();if(!/^https?:\/\//.test(u))u='http://'+u;let p;try{p=new URL(u)}catch(e){p=new URL('http://example.com')}
-  const h=p.host,path=(p.pathname||'/')+p.search,W='WEB SERVER';
-  return[o(K,N,'DNS','Query A Record: '+h),i(N,K,'DNS','Response: 192.0.2.1 (Resolved via socket)'),...tcp(W,'SYN Segment [Port 80/443] (Seq=0, Win=64240)','SYN-ACK Segment (Seq=0, Ack=1, Win=29200)'),
-  o(K,W,'HTTP','GET '+path+' HTTP/1.1\nHost: '+h+'\nAccept: text/html'),i(W,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: text/html\n\n[HTML Document Payload]')]}
- if(t==='mail'){const dom=d.to_email.split('@')[1]||'local.edu',M='SMTP SERVER';
-  return[o(K,N,'DNS','Query MX Record: '+dom),i(N,K,'DNS','Response: mail.'+dom),...tcp(M,'SYN Segment [Port 25/587] (Seq=0)','SYN-ACK Segment (Seq=0, Ack=1)'),
-  o(K,M,'SMTP','EHLO client.local'),i(M,K,'SMTP','250-mail.'+dom+' Hello\n250-8BITMIME\n250 OK'),o(K,M,'SMTP','MAIL FROM: <student@university.edu>'),i(M,K,'SMTP','250 2.1.0 OK'),
-  o(K,M,'SMTP','RCPT TO: <'+d.to_email+'>'),i(M,K,'SMTP','250 2.1.5 OK'),o(K,M,'SMTP','DATA'),i(M,K,'SMTP','354 End data with <CR><LF>.<CR><LF>'),
-  o(K,M,'SMTP','Subject: '+d.subject+'\n\n'+d.body+'\n.'),i(M,K,'SMTP','250 2.0.0 Ok: queued as 7F3B1C'),o(K,M,'SMTP','QUIT'),i(M,K,'SMTP','221 2.0.0 Bye')]}
- const c='cdn.stream.com',V='VIDEO SERVER',g=n=>[o(K,V,'HTTP','GET /segments/'+d.quality+'/seg_00'+n+'.ts HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment '+n+']')];
- return[o(K,N,'DNS','Query A Record: '+c),i(N,K,'DNS','Response: 198.51.100.14'),...tcp(V,'SYN Segment [Port 443] (Seq=0)','SYN-ACK Segment (Seq=0, Ack=1)'),
-  o(K,V,'HTTP','GET /master_manifest.m3u8 HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]'),...g(1),...g(2)]}
+        <div class="panel right-panel">
+            <h2>Sequence Visualizer</h2>
+            <div id="log-container">
+                <div style="display: flex; height: 100%; align-items: center; justify-content: center; color: var(--text-secondary); font-style: italic; font-size: 0.875rem;">
+                    Standby: Awaiting client operation...
+                </div>
+            </div>
+        </div>
+    </div>
 
-// ---- 3D stage (Three.js) ----
-if(typeof THREE==='undefined'){const st=document.getElementById('stage');if(st)st.style.display='none';window.fly=function(){};window.applyTheme=function(){}}else{
-const P3={CLIENT:new THREE.Vector3(-3.6,-.6,0),'DNS SERVER':new THREE.Vector3(0,1.5,0)},SRV=new THREE.Vector3(3.6,-.6,0);
-const pos3=n=>P3[n]||SRV;
-let R3,cam,scn,mats=[],fl=[],pl=[],th={},mx=0,orbs=[];
-function cols(){const g=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();return{ink:g('--ink'),dns:g('--dns'),tcp:g('--tcp'),app:g('--app')}}
-function applyTheme(){th=cols();mats.forEach(m=>m.color.set(th.ink))}
-function initStage(){
- const st=$('stage');scn=new THREE.Scene();cam=new THREE.PerspectiveCamera(40,1,.1,100);
- R3=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true,alpha:true});R3.setPixelRatio(Math.min(devicePixelRatio,2));
- const mk=(v,o)=>{const wm=new THREE.MeshBasicMaterial({wireframe:true,transparent:true,opacity:.5}),cm=new THREE.MeshBasicMaterial({transparent:true,opacity:.9}),g=new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(.62,1),wm),new THREE.Mesh(new THREE.SphereGeometry(.14,16,16),cm));g.position.copy(v);scn.add(g);mats.push(wm,cm);orbs.push(g)};
- [P3.CLIENT,P3['DNS SERVER'],SRV].forEach(mk);
- [[P3.CLIENT,P3['DNS SERVER']],[P3.CLIENT,SRV]].forEach(([a,b])=>{const lm=new THREE.LineBasicMaterial({transparent:true,opacity:.22});mats.push(lm);scn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a,b]),lm))});
- applyTheme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(applyTheme,0));
- const size=()=>{const w=st.clientWidth,h=st.clientHeight;R3.setSize(w,h,false);cam.aspect=w/h;cam.position.z=Math.max(10.5,4.8/(Math.tan(20*Math.PI/180)*cam.aspect));cam.updateProjectionMatrix()};
- new ResizeObserver(size).observe(st);size();
- st.addEventListener('pointermove',e=>{const r=st.getBoundingClientRect();mx=((e.clientX-r.left)/r.width-.5)*2});
- tick()}
-function fly(s){if(!scn)return;const a=pos3(s.from),b=pos3(s.to),key=['dns','tcp','app'][phase(s.proto)],col=new THREE.Color(th[key]);
- const mesh=new THREE.Mesh(new THREE.SphereGeometry(.13,16,16),new THREE.MeshBasicMaterial({color:col}));scn.add(mesh);
- const tr=[...Array(9)].map((_,k)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.1-k*.008,10,10),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.5-k*.055}));scn.add(m);return m});
- fl.push({t:0,a,b,mesh,tr});ring(a,col);
- const c=$('cap');c.style.setProperty('--c',th[key]);c.innerHTML='<b>'+s.proto+'</b> '+cap(s.from)+' → '+cap(s.to)}
-function ring(v,col){const m=new THREE.Mesh(new THREE.RingGeometry(.6,.63,48),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide}));m.position.copy(v);scn.add(m);pl.push({m,t:0})}
-const at=(a,b,t)=>new THREE.Vector3().lerpVectors(a,b,t).add(new THREE.Vector3(0,Math.sin(Math.PI*t)*.55,0));
-function tick(){requestAnimationFrame(tick);
- cam.position.x+=(mx*.7-cam.position.x)*.05;cam.lookAt(0,.3,0);
- orbs.forEach((o,i)=>{o.rotation.y+=.006;o.rotation.x+=.003*(i+1)});
- fl=fl.filter(f=>{f.t+=.018;const t=Math.min(f.t,1);
-  f.mesh.visible=f.t<=1;f.mesh.position.copy(at(f.a,f.b,t));
-  f.tr.forEach((m,k)=>{const q=f.t-(k+1)*.03;m.visible=q>0&&q<=1;if(m.visible)m.position.copy(at(f.a,f.b,q))});
-  if(f.t>=1&&!f.hit){f.hit=1;ring(f.b,f.mesh.material.color)}
-  if(f.t>1.4){scn.remove(f.mesh,...f.tr);return false}return true});
- pl=pl.filter(p=>{p.t+=.025;p.m.scale.setScalar(1+p.t*1.8);p.m.material.opacity=.8*(1-p.t);p.m.lookAt(cam.position);if(p.t>=1){scn.remove(p.m);return false}return true});
- R3.render(scn,cam);
- const w=$('stage').clientWidth,h=$('stage').clientHeight;
- [P3.CLIENT,P3['DNS SERVER'],SRV].forEach((v,i)=>{const p=v.clone().project(cam),l=$('nl'+i);l.style.left=((p.x*.5+.5)*w)+'px';l.style.top=((-p.y*.5+.5)*h+34)+'px'})}
-try{initStage()}catch(e){scn=null;$('stage').style.display='none'}
-}
+    <script>
+        // --- Theme Toggle Logic ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', target);
+            updateCanvasColors(); 
+        }
 
-// player
-let seq=[],idx=0,sel=-1,timer=null,playing=false,cur='browse';
-const phase=p=>p==='DNS'?0:p==='TCP'?1:2, pcol=p=>['--dns','--tcp','--app'][phase(p)];
-function sw(t){cur=t;document.querySelectorAll('.form').forEach(e=>e.classList.toggle('on',e.id==='f-'+t));document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t))}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function rowEl(s,i,anim){
- const a=lane(s.from),b=lane(s.to),right=b>a,el=document.createElement('div');
- el.className='row'+(anim?'':' static');el.dataset.i=i;el.style.setProperty('--c','var('+pcol(s.proto)+')');
- let sum=s.msg.split('\n')[0];if(sum.length>30)sum=sum.slice(0,29)+'…';
- el.innerHTML='<div class="arrow '+(right?'r':'l')+'" style="left:'+Math.min(a,b)+'%;width:'+Math.abs(b-a)+'%"></div><div class="lbl" style="left:'+(a+b)/2+'%"><i>'+String(i+1).padStart(2,'0')+'</i><b>'+s.proto+'</b><span>'+esc(sum)+'</span></div>';
- el.onclick=()=>{select(i);fly(seq[i])};return el}
-function select(i){sel=i;document.querySelectorAll('.row').forEach(r=>r.classList.toggle('sel',+r.dataset.i===i));
- const d=$('detail');if(i<0||!seq[i]){d.style.display='none';return}
- const s=seq[i];d.style.display='block';d.style.setProperty('--c','var('+pcol(s.proto)+')');
- d.innerHTML='<h3><span>Step '+(i+1)+'</span><span class="tag">'+s.proto+'</span><span>'+cap(s.from)+' → '+cap(s.to)+'</span><span>'+(s.type==='in'?'inbound':'outbound')+'</span></h3><pre>'+esc(s.msg)+'</pre>'}
-function ui(){
- const ap=idx?phase(seq[idx-1].proto):-1;
- document.querySelectorAll('.ph').forEach((e,k)=>{e.classList.toggle('done',k<ap);e.classList.toggle('act',k===ap)});
- $('cnt').textContent=idx+'/'+seq.length;$('sc').max=seq.length;$('sc').value=idx;
- $('pp').innerHTML=playing?PAUSE:PLAY;$('bk').disabled=idx<=0;$('fw').disabled=idx>=seq.length;
- $('dock').style.display=seq.length?'flex':'none'}
-function add(anim){const el=rowEl(seq[idx],idx,anim);$('rows').appendChild(el);idx++;select(idx-1);if(anim){fly(seq[idx-1]);el.scrollIntoView({block:'center',behavior:'smooth'})}}
-function clearRows(){document.querySelectorAll('.row').forEach(r=>r.remove());idx=0;sel=-1}
-async function go(t){clearTimeout(timer);cur=t;playing=false;let data,live=true;
- try{const r=await fetch('/api/'+t,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload(t))});if(!r.ok)throw 0;data=(await r.json()).sequence}
- catch(e){live=false;data=mock(t,payload(t))}
- seq=data.map(norm);const m=$('mode');m.className='mode'+(live?' live':'');m.textContent=live?'Live backend':'Offline demo';
- const rem=(seq.find(x=>x.from!=='CLIENT'&&x.from!=='DNS SERVER')||{from:'REMOTE SERVER'}).from;$('h3').innerHTML=cap(rem)+'<small>remote host</small>';$('nl2').firstChild.textContent=cap(rem);
- clearRows();$('empty').style.display='none';playing=true;ui();next()}
-function next(){if(!playing)return;if(idx>=seq.length){playing=false;ui();return}add(true);ui();timer=setTimeout(next,1300)}
-function pause(){playing=false;clearTimeout(timer)}
-function pp(){if(playing){pause()}else{if(idx>=seq.length)return go(cur);playing=true;next()}ui()}
-function fwd(){pause();if(idx<seq.length)add(true);ui()}
-function scrub(n){pause();clearRows();for(let i=0;i<n;i++)add(false);if(!n)select(-1);ui()}
-function back(){scrub(Math.max(0,idx-1))}
-</script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        // --- Core Application Logic ---
+        function switchActivity() {
+            document.querySelectorAll('.activity-section').forEach(el => el.classList.remove('active'));
+            const selected = document.getElementById('activity-selector').value;
+            document.getElementById(`form-${selected}`).classList.add('active');
+        }
+
+        async function triggerAction(type) {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = ''; 
+            
+            let payload = {};
+            if (type === 'browse') payload = { url: document.getElementById('url').value };
+            if (type === 'mail') payload = { 
+                to_email: document.getElementById('to_email').value,
+                subject: document.getElementById('subject').value,
+                body: document.getElementById('body').value
+            };
+            if (type === 'stream') payload = { quality: document.getElementById('quality').value };
+
+            try {
+                const response = await fetch(`/api/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                animateSequence(data.sequence);
+            } catch (error) {
+                logContainer.innerHTML = `<div style="color: red; padding: 1rem;">Connection error. Ensure backend is running.</div>`;
+            }
+        }
+
+        function animateSequence(sequence) {
+            const logContainer = document.getElementById('log-container');
+            let delay = 0;
+            
+            sequence.forEach((step) => {
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = `log-entry log-${step.type}`;
+                    const directionArrow = step.type === 'out' ? '➔' : '➔';
+                    
+                    div.innerHTML = `
+                        <div class="meta">
+                            <span>${step.sender} ${directionArrow} ${step.receiver}</span>
+                            <span class="protocol-badge">${step.protocol}</span>
+                        </div>
+                        <pre>${step.msg}</pre>
+                    `;
+                    logContainer.appendChild(div);
+                    // Ensure the container auto-scrolls to the newest entry
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }, delay);
+                delay += 1200; 
+            });
+        }
+
+        // --- Starfield Background Logic ---
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        let starColor = '';
+
+        function updateCanvasColors() {
+            const style = getComputedStyle(document.body);
+            starColor = style.getPropertyValue('--star-color').trim();
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            updateCanvasColors();
+        }
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * canvas.height; 
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = 0;
+                this.size = Math.random() * 2;
+                this.speed = (Math.random() * 0.5) + 0.1;
+                this.opacity = (Math.random() * 0.5) + 0.3;
+            }
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = starColor.replace(')', `, ${this.opacity})`).replace('rgb', 'rgba'); 
+                
+                if (starColor.includes('rgba')) {
+                    const parts = starColor.split(',');
+                    parts[3] = ` ${this.opacity})`;
+                    ctx.fillStyle = parts.join(',');
+                }
+                
+                ctx.fill();
+            }
+        }
+
+        function initStars() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            const starCount = Math.floor((canvas.width * canvas.height) / 4000); 
+            for (let i = 0; i < starCount; i++) stars.push(new Star());
+            animateStars();
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < stars.length; i++) {
+                stars[i].update();
+                stars[i].draw();
+            }
+            requestAnimationFrame(animateStars);
+        }
+
+        // Boot
+        updateCanvasColors();
+        initStars();
+    </script>
 </body>
 </html>
