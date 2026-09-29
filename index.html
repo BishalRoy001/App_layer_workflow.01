@@ -17,6 +17,7 @@ body{background:var(--bg);color:var(--ink);font:400 15px/1.5 Inter,system-ui,san
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3rem}
 .mark{font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:.6rem}
 .mark i{width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:14px 0 0 -3px var(--ink2),28px 0 0 -4px var(--line);margin-right:1.6rem}
+.mode{font-size:.72rem;color:var(--ink2);display:flex;align-items:center;gap:.4rem}.mode:empty{display:none}.mode::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink2)}.mode.live::before{background:#16a34a}
 .ghost{background:none;border:1px solid var(--line);color:var(--ink2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:.9rem}
 .ghost:hover{color:var(--ink);border-color:var(--ink2)}
 h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 .6rem}
@@ -73,7 +74,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);hei
 </head>
 <body>
 <div class="page">
- <div class="top"><div class="mark"><i></i>Protocol Flow</div><button class="ghost" onclick="theme()" title="Toggle theme">◐</button></div>
+ <div class="top"><div class="mark"><i></i>Protocol Flow</div><div style="display:flex;gap:.7rem;align-items:center"><span class="mode" id="mode"></span><button class="ghost" onclick="theme()" title="Toggle theme">◐</button></div></div>
  <h1>See how a request<br>travels the network.</h1>
  <p class="lead">Pick an activity, run it, and follow each packet between client, DNS and server as a sequence.</p>
 
@@ -97,7 +98,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);hei
  </div>
 
  <div class="diagram">
-  <div class="heads"><div>Client<small>your device</small></div><div>DNS<small>resolver</small></div><div>Server<small>remote host</small></div></div>
+  <div class="heads"><div>Client<small>your device</small></div><div>DNS server<small>resolver</small></div><div id="h3">Remote server<small>remote host</small></div></div>
   <div class="rows" id="rows">
    <div class="ll" style="left:16.667%"></div><div class="ll" style="left:50%"></div><div class="ll" style="left:83.333%"></div>
    <div class="empty" id="empty">Press Run to trace the exchange</div>
@@ -118,28 +119,29 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--ink);hei
 <script>
 const $=id=>document.getElementById(id);
 const PLAY='<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>',PAUSE='<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>';
-const X={Client:16.667,DNS:50,Server:83.333};
+const lane=n=>n==='CLIENT'?16.667:n==='DNS SERVER'?50:83.333;
+const cap=n=>n.charAt(0)+n.slice(1).toLowerCase();
 function theme(){const r=document.documentElement;const dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=dark?'light':'dark'}
 
-// simulated backend (replaces /api/*)
-const C='Client',D='DNS',S='Server';
-const st=(from,to,proto,msg)=>({from,to,proto,msg});
-const tcp=()=>[st(C,S,'TCP','SYN  seq=1000'),st(S,C,'TCP','SYN-ACK  seq=5000 ack=1001'),st(C,S,'TCP','ACK  seq=1001 ack=5001\n-- connection established --')];
-const dns=h=>[st(C,D,'DNS','Query: A record for '+h+'?'),st(D,C,'DNS','Answer: '+h+' -> 142.250.190.78  (TTL 300)')];
-function build(t){
- if(t==='browse'){const h=($('url').value||'').replace(/^https?:\/\//,'').split('/')[0]||'example.com';
-  return[...dns(h),...tcp(),st(C,S,'HTTP','GET / HTTP/1.1\nHost: '+h+'\nUser-Agent: ProtocolFlow/1.0\nAccept: text/html'),
-  st(S,C,'HTTP','HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 48211\n\n<!DOCTYPE html>...'),st(C,S,'TCP','FIN-ACK\n-- closing connection --')]}
- if(t==='mail'){const to=$('to').value,sub=$('subj').value,b=$('body').value,dom=to.split('@')[1]||'mail.example.com';
-  return[...dns('mx.'+dom),...tcp(),st(S,C,'SMTP','220 mx.'+dom+' ESMTP ready'),st(C,S,'SMTP','HELO client.local'),st(S,C,'SMTP','250 Hello client.local'),
-  st(C,S,'SMTP','MAIL FROM:<student@client.local>'),st(S,C,'SMTP','250 OK'),st(C,S,'SMTP','RCPT TO:<'+to+'>'),st(S,C,'SMTP','250 OK'),
-  st(C,S,'SMTP','DATA'),st(S,C,'SMTP','354 End data with <CR><LF>.<CR><LF>'),st(C,S,'SMTP','Subject: '+sub+'\n\n'+b+'\n.'),st(S,C,'SMTP','250 Message queued'),
-  st(C,S,'SMTP','QUIT'),st(S,C,'SMTP','221 Bye')]}
- const q=$('q').value,bw=q==='1080p'?'5000000':'2500000';
- return[...dns('stream.video-cdn.com'),...tcp(),st(C,S,'HLS','GET /master.m3u8 HTTP/1.1'),
-  st(S,C,'HLS','200 OK\n#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH='+bw+',RESOLUTION='+(q==='1080p'?'1920x1080':'1280x720')+'\n'+q+'/index.m3u8'),
-  st(C,S,'HLS','GET /'+q+'/seg001.ts HTTP/1.1'),st(S,C,'HLS','206 Partial Content  [segment 1, 4s]'),
-  st(C,S,'HLS','GET /'+q+'/seg002.ts HTTP/1.1'),st(S,C,'HLS','206 Partial Content  [segment 2, 4s]')]}
+// backend contract: POST /api/{browse|mail|stream} -> {sequence:[{type,sender,receiver,protocol,msg}]}
+const payload=t=>t==='browse'?{url:$('url').value}:t==='mail'?{to_email:$('to').value,subject:$('subj').value,body:$('body').value}:{quality:$('q').value};
+const norm=x=>({type:x.type,from:x.sender,to:x.receiver,proto:String(x.protocol).toUpperCase(),msg:x.msg});
+// offline fallback: mirrors main.py so the page still demos without the server
+function mock(t,d){
+ const K='CLIENT',N='DNS SERVER',o=(s,r,p,m)=>({type:'out',sender:s,receiver:r,protocol:p,msg:m}),i=(s,r,p,m)=>({type:'in',sender:s,receiver:r,protocol:p,msg:m});
+ const tcp=(v,a,b)=>[o(K,v,'TCP',a),i(v,K,'TCP',b),o(K,v,'TCP','ACK Segment (Ack=1) - Connection Established')];
+ if(t==='browse'){let u=d.url.trim();if(!/^https?:\/\//.test(u))u='http://'+u;let p;try{p=new URL(u)}catch(e){p=new URL('http://example.com')}
+  const h=p.host,path=(p.pathname||'/')+p.search,W='WEB SERVER';
+  return[o(K,N,'DNS','Query A Record: '+h),i(N,K,'DNS','Response: 192.0.2.1 (Resolved via socket)'),...tcp(W,'SYN Segment [Port 80/443] (Seq=0, Win=64240)','SYN-ACK Segment (Seq=0, Ack=1, Win=29200)'),
+  o(K,W,'HTTP','GET '+path+' HTTP/1.1\nHost: '+h+'\nAccept: text/html'),i(W,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: text/html\n\n[HTML Document Payload]')]}
+ if(t==='mail'){const dom=d.to_email.split('@')[1]||'local.edu',M='SMTP SERVER';
+  return[o(K,N,'DNS','Query MX Record: '+dom),i(N,K,'DNS','Response: mail.'+dom),...tcp(M,'SYN Segment [Port 25/587] (Seq=0)','SYN-ACK Segment (Seq=0, Ack=1)'),
+  o(K,M,'SMTP','EHLO client.local'),i(M,K,'SMTP','250-mail.'+dom+' Hello\n250-8BITMIME\n250 OK'),o(K,M,'SMTP','MAIL FROM: <student@university.edu>'),i(M,K,'SMTP','250 2.1.0 OK'),
+  o(K,M,'SMTP','RCPT TO: <'+d.to_email+'>'),i(M,K,'SMTP','250 2.1.5 OK'),o(K,M,'SMTP','DATA'),i(M,K,'SMTP','354 End data with <CR><LF>.<CR><LF>'),
+  o(K,M,'SMTP','Subject: '+d.subject+'\n\n'+d.body+'\n.'),i(M,K,'SMTP','250 2.0.0 Ok: queued as 7F3B1C'),o(K,M,'SMTP','QUIT'),i(M,K,'SMTP','221 2.0.0 Bye')]}
+ const c='cdn.stream.com',V='VIDEO SERVER',g=n=>[o(K,V,'HTTP','GET /segments/'+d.quality+'/seg_00'+n+'.ts HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: video/mp2t\n\n[Binary Video Segment '+n+']')];
+ return[o(K,N,'DNS','Query A Record: '+c),i(N,K,'DNS','Response: 198.51.100.14'),...tcp(V,'SYN Segment [Port 443] (Seq=0)','SYN-ACK Segment (Seq=0, Ack=1)'),
+  o(K,V,'HTTP','GET /master_manifest.m3u8 HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]'),...g(1),...g(2)]}
 
 // player
 let seq=[],idx=0,sel=-1,timer=null,playing=false,cur='browse';
@@ -147,7 +149,7 @@ const phase=p=>p==='DNS'?0:p==='TCP'?1:2, pcol=p=>['--dns','--tcp','--app'][phas
 function sw(t){cur=t;document.querySelectorAll('.form').forEach(e=>e.classList.toggle('on',e.id==='f-'+t));document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t))}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function rowEl(s,i,anim){
- const a=X[s.from],b=X[s.to],right=b>a,el=document.createElement('div');
+ const a=lane(s.from),b=lane(s.to),right=b>a,el=document.createElement('div');
  el.className='row'+(anim?'':' static');el.dataset.i=i;el.style.setProperty('--c','var('+pcol(s.proto)+')');
  let sum=s.msg.split('\n')[0];if(sum.length>30)sum=sum.slice(0,29)+'…';
  el.innerHTML='<div class="arrow '+(right?'r':'l')+'" style="left:'+Math.min(a,b)+'%;width:'+Math.abs(b-a)+'%"></div><div class="lbl" style="left:'+(a+b)/2+'%"><i>'+String(i+1).padStart(2,'0')+'</i><b>'+s.proto+'</b><span>'+esc(sum)+'</span></div>';
@@ -155,7 +157,7 @@ function rowEl(s,i,anim){
 function select(i){sel=i;document.querySelectorAll('.row').forEach(r=>r.classList.toggle('sel',+r.dataset.i===i));
  const d=$('detail');if(i<0||!seq[i]){d.style.display='none';return}
  const s=seq[i];d.style.display='block';d.style.setProperty('--c','var('+pcol(s.proto)+')');
- d.innerHTML='<h3><span>Step '+(i+1)+'</span><span class="tag">'+s.proto+'</span><span>'+s.from+' → '+s.to+'</span></h3><pre>'+esc(s.msg)+'</pre>'}
+ d.innerHTML='<h3><span>Step '+(i+1)+'</span><span class="tag">'+s.proto+'</span><span>'+cap(s.from)+' → '+cap(s.to)+'</span><span>'+(s.type==='in'?'inbound':'outbound')+'</span></h3><pre>'+esc(s.msg)+'</pre>'}
 function ui(){
  const ap=idx?phase(seq[idx-1].proto):-1;
  document.querySelectorAll('.ph').forEach((e,k)=>{e.classList.toggle('done',k<ap);e.classList.toggle('act',k===ap)});
@@ -164,7 +166,12 @@ function ui(){
  $('dock').style.display=seq.length?'flex':'none'}
 function add(anim){const el=rowEl(seq[idx],idx,anim);$('rows').appendChild(el);idx++;select(idx-1);if(anim)el.scrollIntoView({block:'center',behavior:'smooth'})}
 function clearRows(){document.querySelectorAll('.row').forEach(r=>r.remove());idx=0;sel=-1}
-function go(t){clearTimeout(timer);cur=t;seq=build(t);clearRows();$('empty').style.display='none';playing=true;ui();next()}
+async function go(t){clearTimeout(timer);cur=t;playing=false;let data,live=true;
+ try{const r=await fetch('/api/'+t,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload(t))});if(!r.ok)throw 0;data=(await r.json()).sequence}
+ catch(e){live=false;data=mock(t,payload(t))}
+ seq=data.map(norm);const m=$('mode');m.className='mode'+(live?' live':'');m.textContent=live?'Live backend':'Offline demo';
+ const rem=(seq.find(x=>x.from!=='CLIENT'&&x.from!=='DNS SERVER')||{from:'REMOTE SERVER'}).from;$('h3').innerHTML=cap(rem)+'<small>remote host</small>';
+ clearRows();$('empty').style.display='none';playing=true;ui();next()}
 function next(){if(!playing)return;if(idx>=seq.length){playing=false;ui();return}add(true);ui();timer=setTimeout(next,1300)}
 function pause(){playing=false;clearTimeout(timer)}
 function pp(){if(playing){pause()}else{if(idx>=seq.length)return go(cur);playing=true;next()}ui()}
