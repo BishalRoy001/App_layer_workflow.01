@@ -157,6 +157,7 @@ function mock(t,d){
   o(K,V,'HTTP','GET /master_manifest.m3u8 HTTP/1.1\nHost: '+c),i(V,K,'HTTP','HTTP/1.1 200 OK\nContent-Type: application/vnd.apple.mpegurl\n\n[Manifest Data]'),...g(1),...g(2)]}
 
 // ---- 3D stage (Three.js) ----
+if(typeof THREE==='undefined'){const st=document.getElementById('stage');if(st)st.style.display='none';window.fly=function(){};window.applyTheme=function(){}}else{
 const P3={CLIENT:new THREE.Vector3(-3.6,-.6,0),'DNS SERVER':new THREE.Vector3(0,1.5,0)},SRV=new THREE.Vector3(3.6,-.6,0);
 const pos3=n=>P3[n]||SRV;
 let R3,cam,scn,mats=[],fl=[],pl=[],th={},mx=0,orbs=[];
@@ -193,7 +194,8 @@ function tick(){requestAnimationFrame(tick);
  R3.render(scn,cam);
  const w=$('stage').clientWidth,h=$('stage').clientHeight;
  [P3.CLIENT,P3['DNS SERVER'],SRV].forEach((v,i)=>{const p=v.clone().project(cam),l=$('nl'+i);l.style.left=((p.x*.5+.5)*w)+'px';l.style.top=((-p.y*.5+.5)*h+34)+'px'})}
-initStage();
+try{initStage()}catch(e){scn=null;$('stage').style.display='none'}
+}
 
 // player
 let seq=[],idx=0,sel=-1,timer=null,playing=false,cur='browse';
